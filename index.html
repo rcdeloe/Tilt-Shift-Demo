@@ -75,7 +75,8 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 .readout dd{text-align:left;font-weight:600}
 .objs table{border-collapse:collapse;font-size:14px}
 .objs th,.objs td{padding:4px 14px 4px 0;text-align:left;font-weight:400}
-.objs th[scope=col]{color:var(--muted);font-size:13px}
+.objs th[scope=col],.objs th[scope=colgroup]{color:var(--muted);font-size:13px}
+.objs th[scope=colgroup]{padding-bottom:0;border-bottom:1px solid var(--line)}
 .objs input{width:18px;height:18px;accent-color:var(--accent);vertical-align:middle;cursor:pointer}
 .objs label{cursor:pointer}
 .objrow{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px}
@@ -99,7 +100,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
   <div>
   <div class="panel objs">
    <h2 style="margin-top:0">Background objects</h2>
-   <table id="objs-side"><thead><tr id="objs-shead"></tr></thead><tbody id="objs-sbody"></tbody></table>
+   <table id="objs-side"><thead><tr id="objs-shead0"></tr><tr id="objs-shead"></tr></thead><tbody id="objs-sbody"></tbody></table>
    <div id="objs-body" style="display:none"></div>
   </div>
   </div>
@@ -154,7 +155,7 @@ const EXTRA=[
 ['coc','Circle of confusion','',0.002,0.2,0.001,0.011]];
 const ADV=[
 ['dmin','Closest focus distance (m)','Sets where 0% sits on the focus scale',0.05,3,0.01,0.3],
-['view','Scene width shown (m)','',5,25,0.5,15]];
+['view','Scene width shown (m)','',5,25,0.5,25]];
 const ALLCTL={};MAIN.concat(ADV).forEach(c=>{ALLCTL[c[0]]=c;});
 const V={},DEF={},NOTES=[];
 // units: everything is stored in metric; imperial only changes what is shown and typed (feet for distances, inches for camera height and closest focus)
@@ -358,28 +359,84 @@ document.getElementById('reset').addEventListener('click',()=>{
  focusAnchor=null;tiltAnchor=null;
  setCocMode('sharp');
  fovOnly=false;document.getElementById('fov-only').checked=false;
- OBJ_SEL=null;SOBJS.forEach(o=>{OBJ_ON[o.id]=[false,false,false,false];});syncObjs();
+ TOP=[];SIDE=[];syncObjs();
  setFocusDist(DEFAULT_FOCUS_M);draw();
 });
 applySensor(DEF.sensor);setCocMode('sharp');
 setFocusDist(DEFAULT_FOCUS_M);
 
-const SOBJS=[{id:'plant',name:'Low plant',h:0.30},{id:'boulder',name:'Boulder',h:1.0},{id:'shrub',name:'Shrub',h:3.0},{id:'tree',name:'Tree',h:12.0}],OBJ_DM=[2,5,10,20],OBJ_DI=[6,15,30,60]; // distances offered, in metres or in feet
+const SOBJS=[{id:'plant',name:'Low plant',h:0.30},{id:'boulder',name:'Boulder',h:1.0},{id:'shrub',name:'Shrub',h:6.0},{id:'tree',name:'Tree',h:12.0}],OBJ_DM=[2,5,10,20],OBJ_DI=[6,15,30,60]; // distances offered, in metres or in feet
 let OBJ_D=OBJ_DM;
-const OBJ_ON={};
-SOBJS.forEach(o=>{OBJ_ON[o.id]=[false,false,false,false];});
-const OBJS=[{id:'wall',name:'Wall on the left'},{id:'trees',name:'Row of trees on the right'},{id:'statues',name:'Cluster of statues'},{id:'building',name:'Building'}];
-let OBJ_SEL=null; // only one background object at a time
+let SIDE=[]; // the placed objects in the side view: {t:type, x:distance in metres}; each can be slid nearer or farther
+const SHW={plant:0.3,boulder:0.9,shrub:1.0,tree:0.8}; // half-width of each object's footprint on the ground, in metres
+const sideFree=(so,x)=>!SIDE.some(q=>q!==so&&Math.abs(q.x-x)<SHW[q.t]+SHW[so.t]-1e-6);
+function sideSnap(so,t,lo,hi){ // the free spot nearest to t: t itself, or just beyond the edge of an object in the way
+ const hw=SHW[so.t];t=Math.max(lo,Math.min(hi,t));const c=[t];SIDE.forEach(q=>{if(q!==so){const g=SHW[q.t]+hw;c.push(q.x-g,q.x+g);}});
+ let best=null,bd=1e9;c.forEach(x=>{if(x<lo||x>hi||!sideFree(so,x))return;const d=Math.abs(x-t);if(d<bd){bd=d;best=x;}});return best;}
+const atSlot=(t,i)=>SIDE.find(o=>o.t===t&&o.s===i); // each object remembers the check-box column it was placed from, wherever it is slid to
+const OBJS=[{id:'wall',name:'Wall'},{id:'trees',name:'Group of trees'},{id:'building',name:'Building'}];
+let TOP=[],objH=[]; // the placed elements in the top view: each one can be dragged on its own
+const WALL_L=15; // the wall is 15 m long and 0.5 m thick
+const TOP_DEF={trees:()=>[[14.75,-4.82],[13.21,-7.69],[14.52,-9.8],[11.1,-9.23],[10.07,-6.76]].map(([x,y],q)=>({k:'tree',g:'trees',x,y,ph:q*1.7})),
+ wall:()=>[{k:'wall',g:'wall',a:[3.8,5.75],b:[18.8,5.75]}],
+ building:()=>[{k:'building',g:'building',x:Math.min(27.1,view.x1)-2.5,y:Math.max(-17.1,view.y0)+2.5,r:0}]}; // placed as in the reference layout; (x,y) of the building is the middle of its corner block, the point it moves and turns about
+const BLD_L=[[2.5,-2.5],[2.5,12.5],[-2.5,12.5],[-2.5,2.5],[-12.5,2.5],[-12.5,-2.5]]; // two 15 m outer sides and 5 m short sides, relative to that point
+const LT=(o,lx,ly)=>{const c=Math.cos(o.r||0),n=Math.sin(o.r||0);return[o.x+lx*c-ly*n,o.y+lx*n+ly*c];};
+const BLD=o=>BLD_L.map(q=>LT(o,q[0],q[1]));
+const wallP=w=>{const dx=w.b[0]-w.a[0],dy=w.b[1]-w.a[1],L=Math.hypot(dx,dy),nx=-dy/L*0.25,ny=dx/L*0.25;return[[w.a[0]+nx,w.a[1]+ny],[w.b[0]+nx,w.b[1]+ny],[w.b[0]-nx,w.b[1]-ny],[w.a[0]-nx,w.a[1]-ny]];};
+const segD=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy,t=L?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L)):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);};
+const inPoly=(p,P)=>{let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++)if((P[i][1]>p[1])!==(P[j][1]>p[1])&&p[0]<(P[j][0]-P[i][0])*(p[1]-P[i][1])/(P[j][1]-P[i][1])+P[i][0])c=!c;return c;};
+const sd=(p,a,b)=>((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]))/(Math.hypot(b[0]-a[0],b[1]-a[1])||1); // signed distance of p from the line a-b
+const EPS=1e-6,TR=0.75; // trees count as circles of radius 0.75 m
+function polyCross(P,Q){ // do the outlines of two polygons properly cross, or one lie inside the other?
+ for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];for(let j=0;j<Q.length;j++){const c=Q[j],d=Q[(j+1)%Q.length];
+  const s1=sd(c,a,b),s2=sd(d,a,b),s3=sd(a,c,d),s4=sd(b,c,d);if(s1*s2<0&&s3*s4<0&&Math.min(s1,s2)<-EPS&&Math.max(s1,s2)>EPS&&Math.min(s3,s4)<-EPS&&Math.max(s3,s4)>EPS)return true;}}
+ return false; // the wall is longer and thinner than the building can contain, so crossing outlines is the only way they can overlap
+}
+function clash(a,b){ // do two placed elements overlap? Touching is allowed
+ if(a.k>b.k)[a,b]=[b,a]; // alphabetical: building, tree, wall
+ if(a.k===b.k)return a.k==='tree'&&Math.hypot(a.x-b.x,a.y-b.y)<2*TR-EPS;
+ if(a.k==='building'&&b.k==='tree'){const P=BLD(a),c=[b.x,b.y];return inPoly(c,P)||P.some((q,i)=>segD(c,q,P[(i+1)%P.length])<TR-EPS);}
+ if(a.k==='tree'){const P=wallP(b);return inPoly([a.x,a.y],P)||P.some((q,i)=>segD([a.x,a.y],q,P[(i+1)%4])<TR-EPS);}
+ return polyCross(BLD(a),wallP(b));
+}
+function clampObjs(x0,x1,y0,y1){ // keep the wall and the building inside the scene as it grows and shrinks (when they fit at all)
+ const m=0.3,sh=(lo,hi,mn,mx)=>hi-lo<=mx-mn?(lo<mn?mn-lo:hi>mx?mx-hi:0):Math.max(mn,Math.min(mx,(lo+hi)/2))-(lo+hi)/2;
+ TOP.forEach(o=>{
+  let pts=null;if(o.k==='wall')pts=[o.a,o.b];else if(o.k==='building')pts=BLD(o);if(!pts)return;
+  const dx=sh(Math.min(...pts.map(q=>q[0])),Math.max(...pts.map(q=>q[0])),x0+m,x1-m),dy=sh(Math.min(...pts.map(q=>q[1])),Math.max(...pts.map(q=>q[1])),y0+m,y1-m);
+  if(!dx&&!dy)return;
+  const c=o.k==='wall'?{...o,a:[o.a[0]+dx,o.a[1]+dy],b:[o.b[0]+dx,o.b[1]+dy]}:{...o,x:o.x+dx,y:o.y+dy},oth=TOP.filter(q=>q!==o);
+  if(oth.some(q=>clash(q,c))&&!oth.some(q=>clash(q,o)))return; // never push one object into another; it simply stays where it is, outside the scene
+  if(o.k==='wall'){o.a=c.a;o.b=c.b;}else{o.x=c.x;o.y=c.y;}
+ });
+}
+function inScene(e){const v=view;if(e.k==='tree')return e.x>=v.x0&&e.x<=v.x1&&e.y>=v.y0&&e.y<=v.y1;
+ return(e.k==='wall'?[e.a,e.b]:BLD(e)).every(q=>q[0]>=v.x0-EPS&&q[0]<=v.x1+EPS&&q[1]>=v.y0-EPS&&q[1]<=v.y1+EPS);}
+let LAYER=null;
+function layered(m,alpha,fn){ // draw something opaque on a scratch layer, then lay it over the scene at one even transparency (so overlapping parts do not show through each other)
+ const c=m.canvas;if(!LAYER)LAYER=document.createElement('canvas');if(LAYER.width!==c.width||LAYER.height!==c.height){LAYER.width=c.width;LAYER.height=c.height;}
+ const g=LAYER.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.setTransform(m.getTransform());g.globalAlpha=1;g.lineWidth=1;g.lineCap='butt';g.setLineDash([]);
+ fn(g);m.save();m.setTransform(1,0,0,1,0,0);m.globalAlpha=alpha;m.drawImage(LAYER,0,0);m.restore();}
+function placeGroup(g){ // put the group down where it clashes with nothing already there, as near its usual spot as possible
+ const def=TOP_DEF[g](),mv=(dx,dy)=>def.map(o=>o.k==='wall'?{...o,a:[o.a[0]+dx,o.a[1]+dy],b:[o.b[0]+dx,o.b[1]+dy]}:{...o,x:o.x+dx,y:o.y+dy});
+ const offs=[[0,0]];for(let r=1;r<=30;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)if(Math.max(Math.abs(dx),Math.abs(dy))===r)offs.push([dx,dy]);
+ for(const[dx,dy]of offs){const c=mv(dx,dy);if(c.every(inScene)&&!c.some(e=>TOP.some(q=>clash(q,e)))){TOP.push(...c);return;}}
+ TOP.push(...def);
+}
 document.getElementById('objs-body').innerHTML=OBJS.map(o=>`<label class="objrow"><input type="checkbox" data-o="${o.id}"> ${o.name}</label>`).join('');
 function buildSObjs(){
+ document.getElementById('objs-shead0').innerHTML='<th></th><th scope="colgroup" colspan="'+OBJ_D.length+'">Initial distance from camera</th>';
  document.getElementById('objs-shead').innerHTML='<th scope="col">Object</th>'+OBJ_D.map((d,i)=>`<th scope="col">${imperial?OBJ_DI[i]+' ft':OBJ_DM[i]+' m'}</th>`).join('');
  document.getElementById('objs-sbody').innerHTML=SOBJS.map(o=>`<tr><th scope="row">${o.name}</th>${OBJ_D.map((d,i)=>`<td><input type="checkbox" data-so="${o.id}" data-i="${i}" aria-label="${o.name} at ${imperial?OBJ_DI[i]+' ft':OBJ_DM[i]+' m'}"></td>`).join('')}</tr>`).join('');
 }
-function syncObjs(){document.querySelectorAll('#objs-body input').forEach(c=>{c.checked=OBJ_SEL===c.dataset.o;});document.querySelectorAll('#objs-sbody input').forEach(c=>{c.checked=OBJ_ON[c.dataset.so][+c.dataset.i];});}
+function syncObjs(){document.querySelectorAll('#objs-body input').forEach(c=>{c.checked=TOP.some(o=>o.g===c.dataset.o);});document.querySelectorAll('#objs-sbody input').forEach(c=>{c.checked=!!atSlot(c.dataset.so,+c.dataset.i);});}
 buildSObjs();
-document.getElementById('objs-sbody').addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.so){const i=+t.dataset.i;SOBJS.forEach(o=>{OBJ_ON[o.id][i]=false;});OBJ_ON[t.dataset.so][i]=t.checked; // one object per distance
+document.getElementById('objs-sbody').addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.so){const i=+t.dataset.i,d=OBJ_D[i];
+ SIDE=SIDE.filter(o=>o.s!==i); // one object per column: whatever was placed there is replaced, or removed on un-checking
+ if(t.checked){const so={t:t.dataset.so,x:d,s:i},x=sideSnap(so,d,0.5,500);if(x!==null){so.x=x;SIDE.push(so);}}
  syncObjs();draw();}});
-document.getElementById('objs-body').addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.o){OBJ_SEL=t.checked?t.dataset.o:null;syncObjs();draw();}});
+document.getElementById('objs-body').addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.o){TOP=TOP.filter(o=>o.g!==t.dataset.o);if(t.checked)placeGroup(t.dataset.o);syncObjs();draw();}});
 const hyperM=()=>(V.fl*V.fl/(V.ap*V.coc)+V.fl)/1000; // hyperfocal distance in metres: focusing here keeps everything from half this distance to infinity acceptably sharp
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const rgb=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16));};
@@ -497,69 +554,100 @@ function draw(){
    for(let i=0;i<n;i++){const c=pts[i],q=mid(c,pts[(i+1)%n]);sx.quadraticCurveTo(PX(c[0]),PY(c[1]),PX(q[0]),PY(q[1]));}sx.closePath();};
   const circ=(cx,cy,r)=>{sx.beginPath();sx.arc(PX(cx),PY(cy),r*kx,0,7);};
   sx.lineWidth=1;sx.strokeStyle=ol;
-  if(!topView)SOBJS.forEach(o=>OBJ_D.forEach((d,i)=>{if(!OBJ_ON[o.id][i])return;
+  if(!topView)SIDE.forEach(so=>{const o=SOBJS.find(q=>q.id===so.t),d=so.x;
    if(d+2<x0||d-2>x1)return;
    sx.globalAlpha=0.7;
    if(o.id==='plant'){sx.fillStyle='#6f9a3e';
     for(const [u,t,w] of[[-0.10,-0.16,0.035],[-0.05,-0.07,0.035],[0,0,0.04],[0.05,0.08,0.035],[0.10,0.17,0.035]]){
      const k=o.h/0.15,hh=o.h*(1-Math.abs(u)*2.2);sx.beginPath();sx.moveTo(PX(d+(u-w)*k),PY(0));sx.lineTo(PX(d+(u+t)*k),PY(hh));sx.lineTo(PX(d+(u+w)*k),PY(0));sx.closePath();sx.fill();sx.stroke();}}
-   else if(o.id==='boulder'){sx.fillStyle='#8a8a84';
-    blob([[-0.85,0],[-0.9,0.35],[-0.55,0.8],[-0.05,1.0],[0.5,0.88],[0.88,0.45],[0.85,0]].map(([u,v])=>[d+u,v]));sx.fill();sx.stroke();
-    sx.globalAlpha=0.25;sx.fillStyle='#000';blob([[0.1,0.05],[0.6,0.15],[0.85,0.45],[0.5,0.88],[0.75,0.4],[0.62,0.08]].map(([u,v])=>[d+u,v]));sx.fill();}
+   else if(o.id==='boulder'){ // an angular, cracked rock: straight facets, lit from the upper left
+    const pg=pts=>{sx.beginPath();pts.forEach((q,n)=>n?sx.lineTo(PX(d+q[0]),PY(q[1])):sx.moveTo(PX(d+q[0]),PY(q[1])));sx.closePath();};
+    sx.fillStyle='#8a8a84';pg([[-0.88,0],[-0.93,0.26],[-0.72,0.4],[-0.8,0.68],[-0.47,0.74],[-0.3,0.97],[0.02,0.9],[0.2,1.0],[0.42,0.84],[0.62,0.86],[0.84,0.6],[0.92,0.3],[0.86,0]]);sx.fill();sx.stroke();
+    sx.save();pg([[-0.88,0],[-0.93,0.26],[-0.72,0.4],[-0.8,0.68],[-0.47,0.74],[-0.3,0.97],[0.02,0.9],[0.2,1.0],[0.42,0.84],[0.62,0.86],[0.84,0.6],[0.92,0.3],[0.86,0]]);sx.clip();
+    sx.globalAlpha=0.30;sx.fillStyle='#fff';pg([[-0.72,0.4],[-0.8,0.68],[-0.47,0.74],[-0.3,0.97],[0.02,0.9],[-0.1,0.58],[-0.4,0.44]]);sx.fill();     // sunlit upper-left facet
+    sx.globalAlpha=0.16;pg([[0.02,0.9],[0.2,1.0],[0.42,0.84],[0.62,0.86],[0.4,0.6],[-0.1,0.58]]);sx.fill();                                           // top facet
+    sx.globalAlpha=0.24;sx.fillStyle='#000';pg([[0.62,0.86],[0.84,0.6],[0.92,0.3],[0.86,0],[0.5,0],[0.46,0.34],[0.4,0.6]]);sx.fill();                // shaded right-hand face
+    sx.globalAlpha=0.14;pg([[-0.88,0],[-0.93,0.26],[-0.72,0.4],[-0.4,0.44],[-0.28,0.14],[-0.34,0]]);sx.fill();                                      // shaded foot
+    sx.globalAlpha=0.55;sx.strokeStyle='#3d3d38';sx.lineWidth=1;sx.beginPath();                                                                       // cracks
+    [[[-0.4,0.44],[-0.28,0.14],[-0.34,0]],[[-0.1,0.58],[0.06,0.34],[0.2,0.16],[0.18,0]],[[0.46,0.34],[0.5,0]],[[-0.1,0.58],[0.4,0.6]]].forEach(c=>c.forEach((q,n)=>n?sx.lineTo(PX(d+q[0]),PY(q[1])):sx.moveTo(PX(d+q[0]),PY(q[1]))));
+    sx.stroke();sx.restore();sx.strokeStyle=ol;}
    else if(o.id==='shrub'){ // shrub: a dense, rounded mass of foliage down to the ground
-    const kk=o.h/3,bs=pts=>blob(pts.map(q=>[d+(q[0]-d)*kk,q[1]*kk])),rg=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<26;q++){const a=q/26*Math.PI*2,m=1+0.09*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([d+cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
+    const ky=o.h/3,bs=pts=>blob(pts.map(q=>[q[0],q[1]*ky])),rg=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<26;q++){const a=q/26*Math.PI*2,m=1+0.09*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([d+cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
     sx.fillStyle='#5b8f3a';bs(rg(0,0.95,0.95,0.9,1));sx.fill();sx.stroke();
     sx.globalAlpha=0.30;sx.fillStyle='#16361a';bs(rg(0.1,0.55,0.75,0.4,2));sx.fill();
     sx.globalAlpha=0.35;sx.fillStyle='#b9e07a';bs(rg(-0.3,1.25,0.35,0.3,3));sx.fill();bs(rg(0.3,1.35,0.3,0.25,4));sx.fill();bs(rg(0.05,0.9,0.25,0.2,5));sx.fill();}
    else{ // tree: flared trunk, two branches, and a lobed canopy with a shaded underside and lighter clumps
-    const kk=o.h/5,blobS=pts=>blob(pts.map(q=>[d+(q[0]-d)*kk,q[1]*kk])),th=(a,b)=>{sx.beginPath();sx.moveTo(PX(d+(a[0]-d)*kk),PY(a[1]*kk));sx.lineTo(PX(d+(b[0]-d)*kk),PY(b[1]*kk));sx.stroke();};
-    sx.fillStyle='#7a5a38';blobS([[-0.34,0],[-0.17,0.5],[-0.14,1.2],[-0.12,2.0],[0.12,2.0],[0.14,1.2],[0.17,0.5],[0.34,0]].map(([u,v])=>[d+u,v]));sx.fill();sx.stroke();
-    sx.strokeStyle='#7a5a38';sx.lineCap='round';sx.lineWidth=Math.max(2,0.13*kx*kk);th([d,1.7],[d-0.85,2.9]);th([d,1.9],[d+0.8,3.1]);th([d,2.1],[d+0.05,3.4]);sx.lineCap='butt';
-    sx.lineWidth=1;sx.strokeStyle=ol;
-    const ring=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<28;q++){const a=q/28*Math.PI*2,m=1+0.10*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([d+cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
-    sx.fillStyle='#4f8a3c';blobS(ring(0,3.45,1.9,1.33,1));sx.fill();sx.stroke();
-    sx.globalAlpha=0.30;sx.fillStyle='#16361a';blobS(ring(0,2.95,1.35,0.55,2));sx.fill();
-    sx.globalAlpha=0.35;sx.fillStyle='#b9e07a';blobS(ring(-0.7,3.9,0.65,0.45,3));sx.fill();blobS(ring(0.5,4.05,0.55,0.4,4));sx.fill();blobS(ring(-0.1,3.4,0.45,0.3,5));sx.fill();}
-   sx.globalAlpha=1;}));
+    // a tapering trunk with bark shading, a fork of branches, and a canopy of overlapping rounded lobes (drawn opaque so the lobes merge cleanly)
+    const kk=o.h/5,X=u=>PX(d+u*kk),Y=v=>PY(v*kk),R=r=>r*kk*kx;
+    layered(sx,0.8,sx=>{sx.lineWidth=1;sx.strokeStyle=ol;
+    sx.globalAlpha=1;
+    const tg=sx.createLinearGradient(X(-0.34),0,X(0.34),0);tg.addColorStop(0,'#94744d');tg.addColorStop(0.55,'#7a5a38');tg.addColorStop(1,'#554027');
+    sx.fillStyle=tg;sx.beginPath();sx.moveTo(X(-0.36),Y(0));sx.quadraticCurveTo(X(-0.17),Y(0.25),X(-0.14),Y(1.1));sx.lineTo(X(-0.11),Y(3.0));sx.lineTo(X(0.11),Y(3.0));sx.lineTo(X(0.14),Y(1.1));sx.quadraticCurveTo(X(0.17),Y(0.25),X(0.36),Y(0));sx.closePath();sx.fill();sx.stroke();
+    sx.strokeStyle='#5a4128';sx.globalAlpha=0.5;sx.lineWidth=1;sx.beginPath();[[-0.05,0.2,0.9],[0.04,0.5,1.5],[-0.07,1.2,2.3]].forEach(([u,a,b])=>{sx.moveTo(X(u),Y(a));sx.lineTo(X(u*0.8),Y(b));});sx.stroke();sx.globalAlpha=1;
+    sx.strokeStyle='#6b4e30';sx.lineCap='round';[[0,1.9,-0.9,2.95,0.1],[0,2.0,0.85,3.05,0.1],[0,2.2,0.02,3.4,0.09]].forEach(([a,b,c,e,w])=>{sx.lineWidth=Math.max(2,w*kx*kk*2);sx.beginPath();sx.moveTo(X(a),Y(b));sx.lineTo(X(c),Y(e));sx.stroke();});sx.lineCap='butt';
+    const LB=[[-1.18,3.0,0.72],[-0.85,3.55,0.75],[-0.2,3.95,0.8],[0.5,3.95,0.78],[1.05,3.55,0.74],[1.25,3.0,0.7],[0.7,2.72,0.7],[0,2.66,0.72],[-0.65,2.72,0.68],[-0.35,3.35,0.82],[0.4,3.4,0.82]]; // lobes of the canopy: centre x, centre y, radius
+    sx.fillStyle=ol;sx.beginPath();LB.forEach(([u,v,r])=>{sx.moveTo(X(u)+R(r)+1.5,Y(v));sx.arc(X(u),Y(v),R(r)+1.5,0,7);});sx.fill();   // the outline: every lobe a touch larger, in the outline colour
+    sx.beginPath();LB.forEach(([u,v,r])=>{sx.moveTo(X(u)+R(r),Y(v));sx.arc(X(u),Y(v),R(r),0,7);});
+    const cg=sx.createLinearGradient(0,Y(4.8),0,Y(2.0));cg.addColorStop(0,'#74b052');cg.addColorStop(0.55,'#4f8a3c');cg.addColorStop(1,'#33672f');
+    sx.fillStyle=cg;sx.fill();
+    sx.save();sx.clip();
+    const soft=(cx,cy,rr,c0)=>{const g=sx.createRadialGradient(cx,cy,0,cx,cy,rr);g.addColorStop(0,c0);g.addColorStop(1,c0.replace(/[\d.]+\)$/,'0)'));sx.fillStyle=g;sx.beginPath();sx.arc(cx,cy,rr,0,7);sx.fill();}; // a soft-edged patch of light or shade
+    sx.globalAlpha=1;
+    LB.forEach(([u,v,r])=>{soft(X(u+0.3*r),Y(v-0.5*r),R(r*0.95),'rgba(15,46,22,0.30)');});     // shade low on each lobe
+    LB.forEach(([u,v,r])=>{soft(X(u-0.25*r),Y(v+0.3*r),R(r*0.7),'rgba(210,240,143,0.40)');});   // light catching each lobe, upper left
+    sx.restore();});}
+   sx.globalAlpha=1;});
   const poly=pts=>{sx.beginPath();pts.forEach((q,n)=>n?sx.lineTo(PX(q[0]),PY(q[1])):sx.moveTo(PX(q[0]),PY(q[1])));sx.closePath();};
   const ring=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<28;q++){const a=q/28*Math.PI*2,m=1+0.10*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
   // x is distance in front of the camera and y is distance to the left of it, both in metres; objects are only drawn from above
-  if(topView&&OBJ_SEL==='wall'){sx.globalAlpha=0.9;sx.fillStyle='#a39b8c';poly([[x0-1,1.75],[x1+1,1.75],[x1+1,2.25],[x0-1,2.25]]);sx.fill();sx.stroke();
-   sx.globalAlpha=0.35;sx.strokeStyle='#5f5848';sx.beginPath();for(let t=Math.ceil(x0/0.5)*0.5;t<x1;t+=0.5){sx.moveTo(PX(t),PY(1.75));sx.lineTo(PX(t),PY(2.25));}sx.stroke();sx.strokeStyle=ol;sx.globalAlpha=1;}
-  if(topView&&OBJ_SEL==='trees'){const ex=2+Math.sqrt(20); // 6 m long, from 4 m right of the camera to straight ahead of it
-   for(let q=0;q<5;q++){const t=q/4,cx=2+(ex-2)*t,cy=-4+4*t,ph=q*1.7;
-    sx.globalAlpha=0.8;sx.fillStyle='#4f8a3c';blob(ring(cx,cy,0.8,0.8,ph));sx.fill();sx.stroke();
-    sx.globalAlpha=0.30;sx.fillStyle='#16361a';blob(ring(cx+0.15,cy-0.12,0.55,0.55,ph+1));sx.fill();
-    sx.globalAlpha=0.35;sx.fillStyle='#b9e07a';blob(ring(cx-0.25,cy+0.25,0.3,0.25,ph+2));sx.fill();
-    sx.globalAlpha=0.85;sx.fillStyle='#7a5a38';circ(cx,cy,0.1);sx.fill();}
-   sx.globalAlpha=1;}
-  if(topView&&OBJ_SEL==='building'){ // front face runs across the whole scene, 12 m out at its left edge and 15 m out at its right edge, and the flat roof runs back to the top of the scene
-   const fx=y=>12+3*(y1-y)/(y1-y0),ya=y1+2,yb=y0-2,dpt=x1-x0+40,P=(y,v)=>[fx(y)+v,y];
-      sx.globalAlpha=1;sx.fillStyle='#aaa59b';poly([P(ya,0),P(yb,0),P(yb,dpt),P(ya,dpt)]);sx.fill();sx.stroke();            // roof
-   sx.globalAlpha=0.45;sx.strokeStyle='#6f6a62';sx.beginPath();                                                       // roofing seams
-   for(let v=2.5;v<dpt;v+=2.5){const q=P(ya,v),r=P(yb,v);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();
-   sx.globalAlpha=1;sx.strokeStyle='#807a70';sx.lineWidth=1.5;sx.beginPath();                                          // inner edge of the parapet
-   {const q=P(ya,0.6),r=P(yb,0.6);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;
-   sx.globalAlpha=0.9;sx.fillStyle='#7d7567';poly([P(ya,-0.35),P(yb,-0.35),P(yb,0),P(ya,0)]);sx.fill();sx.stroke();   // the front wall, seen edge-on
-   sx.strokeStyle=ol;sx.globalAlpha=1;}
-  if(topView&&OBJ_SEL==='statues'){
-   // each statue from above: a plinth with a bevelled top, and a stone figure standing on it (x is forward, y is to the left)
-   const el=(cx,cy,rx,ry,fill,a)=>{sx.globalAlpha=a==null?0.97:a;sx.fillStyle=fill;sx.beginPath();sx.ellipse(PX(cx),PY(cy),Math.max(0.8,rx*kx),Math.max(0.8,ry*kx),0,0,7);sx.fill();sx.stroke();};
-   const sq=(cx,cy,h)=>poly([[cx-h,cy-h],[cx+h,cy-h],[cx+h,cy+h],[cx-h,cy+h]]);
-   const kinds=['arms down','raised arm','arms wide','bust'];
-   [[4,4,0.5,0],[2,2,0.65,1],[10,0,0.4,3],[6,-2,0.55,2]].forEach(([cx,cy,dm,kind])=>{const u=dm/2;
-    sx.globalAlpha=0.28;sx.fillStyle='#000';sq(cx-0.06*dm,cy-0.06*dm,u);sx.fill(); // shadow, thrown down and to the right
-    sx.globalAlpha=1;sx.fillStyle='#8f8d84';sq(cx,cy,u);sx.fill();sx.stroke();           // plinth
-    sx.fillStyle='#bdbaae';sq(cx,cy,u*0.8);sx.fill();sx.stroke();                          // bevelled top
-    const stone='#e6e2d6';
-    if(kind===0){el(cx,cy+0.34*dm,0.07*dm,0.2*dm,stone);el(cx,cy-0.34*dm,0.07*dm,0.2*dm,stone);}
-    if(kind===1){el(cx,cy+0.42*dm,0.06*dm,0.17*dm,stone);el(cx+0.18*dm,cy-0.27*dm,0.17*dm,0.06*dm,stone);}
-    if(kind===2){el(cx,cy+0.4*dm,0.05*dm,0.2*dm,stone);el(cx,cy-0.4*dm,0.05*dm,0.2*dm,stone);}
-    el(cx,cy,0.2*dm,kind===3?0.4*dm:0.33*dm,stone);                                       // shoulders
-    el(cx+0.01*dm,cy,0.14*dm,0.14*dm,'#f1eee4');                                         // head
-    el(cx+0.15*dm,cy,0.035*dm,0.035*dm,'#d6d2c5',0.9);                                   // nose, so the figure faces the camera
-   });
-   sx.globalAlpha=1;}
+  if(topView)clampObjs(x0,x1,y0,y1);
+  if(topView&&TOP.some(o=>o.k==='wall')){const wl=TOP.find(o=>o.k==='wall'),wa=wl.a,wb=wl.b,ux=(wb[0]-wa[0])/WALL_L,uy=(wb[1]-wa[1])/WALL_L,nx=-uy*0.25,ny=ux*0.25;
+   const Q=(t,sg)=>[wa[0]+ux*t+sg*nx,wa[1]+uy*t+sg*ny];
+   sx.globalAlpha=0.9;sx.fillStyle='#a39b8c';poly([Q(0,1),Q(WALL_L,1),Q(WALL_L,-1),Q(0,-1)]);sx.fill();sx.stroke();
+   sx.globalAlpha=0.35;sx.strokeStyle='#5f5848';sx.beginPath();for(let t=0.5;t<WALL_L;t+=0.5){const q=Q(t,1),r=Q(t,-1);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();sx.strokeStyle=ol;sx.globalAlpha=1;}
+  if(topView&&TOP.some(o=>o.k==='tree')){
+   for(const o of TOP){if(o.k!=='tree')continue;const cx=o.x,cy=o.y,ph=o.ph;
+    layered(sx,0.9,sx=>{ // a tree from above: a canopy of rounded lobes round a centre, with soft light from the upper left
+     sx.lineWidth=1;sx.strokeStyle=ol;
+     sx.fillStyle='rgba(0,0,0,0.20)';sx.beginPath();sx.arc(PX(cx-0.16),PY(cy-0.16),0.8*kx,0,7);sx.fill();                // shadow
+     const LB=[[0,0,0.46]];for(let q=0;q<6;q++){const a=ph+q*Math.PI/3;LB.push([0.36*Math.cos(a),0.36*Math.sin(a),0.37+0.04*Math.sin(q*2.1+ph)]);}
+     sx.fillStyle=ol;sx.beginPath();LB.forEach(([u,v,r])=>{sx.moveTo(PX(cx+u)+r*kx+1.5,PY(cy+v));sx.arc(PX(cx+u),PY(cy+v),r*kx+1.5,0,7);});sx.fill();
+     sx.beginPath();LB.forEach(([u,v,r])=>{sx.moveTo(PX(cx+u)+r*kx,PY(cy+v));sx.arc(PX(cx+u),PY(cy+v),r*kx,0,7);});
+     const g=sx.createRadialGradient(PX(cx+0.25),PY(cy+0.25),0,PX(cx),PY(cy),0.95*kx);g.addColorStop(0,'#86c25f');g.addColorStop(0.6,'#4f8a3c');g.addColorStop(1,'#2f6a2e');
+     sx.fillStyle=g;sx.fill();sx.save();sx.clip();
+     const soft=(x,y,rr,c0)=>{const q=sx.createRadialGradient(PX(x),PY(y),0,PX(x),PY(y),rr*kx);q.addColorStop(0,c0);q.addColorStop(1,c0.replace(/[\d.]+\)$/,'0)'));sx.fillStyle=q;sx.beginPath();sx.arc(PX(x),PY(y),rr*kx,0,7);sx.fill();};
+     LB.forEach(([u,v,r])=>soft(cx+u-0.3*r,cy+v-0.3*r,r*0.95,'rgba(15,46,22,0.28)'));
+     LB.forEach(([u,v,r])=>soft(cx+u+0.25*r,cy+v+0.25*r,r*0.7,'rgba(210,240,143,0.38)'));
+     sx.restore();});}
+  }
+  if(topView&&TOP.some(o=>o.k==='building')){const bo=TOP.find(o=>o.k==='building'),P=BLD(bo),L=(a,b)=>LT(bo,a,b);
+   const loc=(pts)=>pts.map(q=>L(q[0],q[1])),rect=(cx,cy,w,h)=>loc([[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]]);
+   sx.globalAlpha=0.22;sx.fillStyle='#000';poly(P.map(q=>[q[0]-0.5,q[1]-0.5]));sx.fill();                          // shadow, thrown down and to the right
+   sx.globalAlpha=1;sx.fillStyle='#c4bfb3';poly(P);sx.fill();sx.stroke();                                          // the parapet rim
+   const inner=loc([[2,-2],[2,12],[-2,12],[-2,2],[-12,2],[-12,-2]]);
+   const A=L(-12.5,0),B=L(2.5,0),rg=sx.createLinearGradient(PX(A[0]),PY(A[1]),PX(B[0]),PY(B[1]));rg.addColorStop(0,'#b6b1a6');rg.addColorStop(1,'#9d988d');
+   sx.fillStyle=rg;poly(inner);sx.fill();sx.lineWidth=1.5;sx.strokeStyle='#807a70';sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;       // the roof
+   sx.save();poly(inner);sx.clip();sx.globalAlpha=0.35;sx.strokeStyle='#6f6a62';sx.beginPath();                      // roofing seams
+   for(let v=-12.5+2.5;v<2.5;v+=2.5){const q=L(v,-4),r=L(v,14);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();sx.restore();
+   sx.strokeStyle='#5c574f';sx.fillStyle='#8b867c';                                                                  // roof equipment
+   [[-5.5,-0.9,1.7,1.1],[-10,0.9,1.5,1.1],[0,11,1.5,0.9],[-3.9,1.3,1.4,1.2]].forEach(([cx,cy,w,h])=>{sx.globalAlpha=1;sx.fillStyle='#8b867c';poly(rect(cx,cy,w,h));sx.fill();sx.stroke();
+    sx.globalAlpha=0.55;sx.fillStyle='#d2cec3';poly(rect(cx-0.1,cy+0.1,w-0.35,h-0.35));sx.fill();});
+   [[-5.5,-0.9],[-10,0.9],[0,11]].forEach(([cx,cy])=>{const c=L(cx,cy);sx.globalAlpha=0.9;sx.fillStyle='#4a4741';sx.beginPath();sx.arc(PX(c[0]),PY(c[1]),0.3*kx,0,7);sx.fill();sx.globalAlpha=0.6;sx.strokeStyle='#cfcabd';sx.beginPath();for(let t=0;t<3;t++){const a=t*Math.PI/3;sx.moveTo(PX(c[0]+0.26*Math.cos(a)),PY(c[1]+0.26*Math.sin(a)));sx.lineTo(PX(c[0]-0.26*Math.cos(a)),PY(c[1]-0.26*Math.sin(a)));}sx.stroke();}); // fans
+   [4.2,8.0].forEach(yy=>{const sk=rect(0,yy,2.2,1.4);sx.globalAlpha=1;sx.fillStyle='#9ec3d2';poly(sk);sx.fill();sx.strokeStyle='#5c574f';sx.stroke();                 // skylights
+    sx.globalAlpha=0.7;sx.strokeStyle='#e8f4f8';sx.beginPath();const a=L(-0.55,yy-0.3),b=L(-0.1,yy+0.3);sx.moveTo(PX(a[0]),PY(a[1]));sx.lineTo(PX(b[0]),PY(b[1]));const c2=L(0.2,yy-0.4),d2=L(0.7,yy+0.3);sx.moveTo(PX(c2[0]),PY(c2[1]));sx.lineTo(PX(d2[0]),PY(d2[1]));sx.stroke();});
+   sx.globalAlpha=1;sx.lineWidth=1;sx.strokeStyle=ol;}
+    // a small grip on every placed element shows that it can be dragged
+  objH=[];
+  const arrows=(X,Y)=>{sx.strokeStyle='#fff';sx.lineWidth=1.5;sx.beginPath();[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>{sx.moveTo(X,Y);sx.lineTo(X+a*5,Y+b*5);sx.moveTo(X+a*5,Y+b*5);sx.lineTo(X+a*3.2-b*1.8,Y+b*3.2+a*1.8);sx.moveTo(X+a*5,Y+b*5);sx.lineTo(X+a*3.2+b*1.8,Y+b*3.2-a*1.8);});sx.stroke();}; // move arrows
+  const turn=(X,Y)=>{sx.strokeStyle='#fff';sx.lineWidth=1.5;sx.beginPath();sx.arc(X,Y,3.6,0.4,0.4+4.9);sx.stroke();sx.beginPath();const ex=X+3.6*Math.cos(0.4),ey=Y+3.6*Math.sin(0.4);sx.moveTo(ex,ey);sx.lineTo(ex+3,ey-1.2);sx.moveTo(ex,ey);sx.lineTo(ex+0.6,ey-3.3);sx.stroke();}; // turn arrow
+  const grip=(id,x,y,r,icon)=>{objH.push({id,px:PX(x),py:PY(y)});
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(x),PY(y),r,0,7);sx.fill();sx.stroke();if(icon)icon(PX(x),PY(y));sx.lineWidth=1;sx.strokeStyle=ol;}};
+  if(topView)TOP.forEach((o,i)=>{
+   if(o.k==='wall'){grip('o'+i+'a',o.a[0],o.a[1],4.5);grip('o'+i+'b',o.b[0],o.b[1],4.5);grip('o'+i+'m',(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2,8,arrows);}
+   else if(o.k==='building'){grip('o'+i,o.x,o.y,8,arrows);const t=LT(o,-12.5,0);grip('o'+i+'r',t[0],t[1],8,turn);}
+   else grip('o'+i,o.x,o.y,4.5);});
+  if(!topView)SIDE.forEach((o,i)=>{objH.push({id:'s'+i,px:PX(o.x),py:PY(0)-12});
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(0)-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}});
  }
  // axis ticks
  const gy=topView?H-28:PY(0); // the distance axis sits on the ground line in the side view and along the bottom edge from above
@@ -646,7 +734,7 @@ function draw(){
   for(let t=Math.ceil(y0/ps)*ps;t<y1;t+=ps){const y=PY(t);if(y<7||y>H-10)continue;sx.beginPath();sx.moveTo(aw-6,y);sx.lineTo(aw,y);sx.stroke();sx.fillText(topView?(Math.abs(Math.round(t*1000)/10)+(t>1e-9?' L':t<-1e-9?' R':'')):String(imperial?Math.round(t*FT*10)/10:Math.round(t*1000)/10),aw-9,y+4);}
   sx.save();sx.translate(11,H/2);sx.rotate(-Math.PI/2);sx.textAlign='center';sx.fillText(topView?'Left / Right (cm)':(imperial?'Height (ft)':'Height (cm)'),0,0);sx.restore();}
  // drag handles
- handles=[];
+ handles=[];objH.forEach(h=>handles.push(h));
  {const edge=x1-0.04*(x1-x0);
   const g=topView?null:groundHit(),gp=(g!==null&&isFinite(g)&&g>x0+0.07*(x1-x0)&&g<edge)?[PX(g),PY(0)]:null;
   // focus dot: always on the plane of focus, at the point nearest an anchor. The anchor is wherever the dot was last dropped (or a default
@@ -751,7 +839,7 @@ function draw(){
  row(topView?'Sharp along lens axis':'Ground in focus',spans.length?spans.map(s=>`${fmt(s[0])} to ${(s===cur&&prev)?'∞':fmt(s[1])}`).join('<br>'):'none');
  { // size of the frame where the plane of focus crosses the lens axis: the gap between the two edges of the field of view, measured straight across through that point
   let fr='n/a';
-  if(isFinite(M.Zc)&&M.Zc>0){const d=M.Zc/1000,F=cw(M.st*d,M.ct*d),ys=[-1,1].map(s2=>{const Xs=s2*M.S/2-M.shift,den=M.j*M.cp-Xs*M.sp;return den>1e-9?M.h+(F[0])*(-M.j*M.sp-Xs*M.cp)/den:NaN;});
+  if(isFinite(M.Zc)&&M.Zc>0){const d=M.Zc/1000,F=cw(0,d),ys=[-1,1].map(s2=>{const Xs=s2*M.S/2-M.shift,den=M.j*M.cp-Xs*M.sp;return den>1e-9?M.h+(F[0])*(-M.j*M.sp-Xs*M.cp)/den:NaN;});
    if(ys.every(isFinite))fr=fmtD(Math.abs(ys[1]-ys[0]));}
   row(topView?'Frame width at focus':'Frame height at focus',fr);}
  row('Plane crosses lens axis',M.Zc<0?'behind lens (past infinity)':isFinite(M.Zc)?fmtD(M.Zc/1000):'∞');
@@ -762,7 +850,7 @@ function draw(){
 const toCanvas=e=>{const r=sc.getBoundingClientRect(),rx=(e.clientX-r.left)*view.W/r.width,ry=(e.clientY-r.top)*view.H/r.height;return view.top?[view.H-ry,rx]:[rx,ry];}; // in the top view, back into the unturned layout
 const toWorld=p=>[view.x0+p[0]/view.vw*(view.x1-view.x0),view.y1-p[1]/view.vh*(view.y1-view.y0)];
 // tol is in on-screen pixels: generous for a finger, tighter for a mouse
-function pick(p,tol){let best=null,bd=tol;for(const h of handles){const d=Math.hypot(h.px-p[0],h.py-p[1]);if(d<bd){bd=d;best=h;}}return best;}
+function pick(p,tol){let best=null,bd=tol;for(const h of handles){const d=Math.hypot(h.px-p[0],h.py-p[1])+(h.id[0]==='o'?8:0);if(d<bd){bd=d;best=h;}}return best;}
 function applyDrag(w){
  if(drag==='focus'){
   // find the focus setting whose plane passes closest to the pointer (tilt unchanged), then remember the pointer as the dot's anchor
@@ -779,6 +867,29 @@ function applyDrag(w){
   const scan=(lo,hi,n)=>{for(let i=0;i<=n;i++){V.focus=lo+(hi-lo)*i/n;model();const g=groundHit();if(g===null||!isFinite(g))continue;const d=Math.abs(g-target);if(d<bd){bd=d;best=V.focus;}}};
   scan(0,100,400);const c=best;scan(Math.max(0,c-0.3),Math.min(100,c+0.3),120);
   V.focus=best;syncFocus();
+ }else if(drag&&drag[0]==='s'){ // slide a side-view object; it cannot overlap another, and jumps past one to the nearest free spot
+  const so=SIDE[+drag.slice(1)];if(!so)return;const x=sideSnap(so,w[0]+grabOff[0],0.5,Math.max(view.x1,so.x));if(x!==null)so.x=x;
+ }else if(drag&&drag[0]==='o'){
+  const o=TOP[parseInt(drag.slice(1))];if(!o)return;
+  const suf=/[a-z]$/.test(drag)?drag.slice(-1):'';
+  w=[w[0]+grabOff[0],w[1]+grabOff[1]];const cl=(v,a,b)=>Math.max(a,Math.min(b,v)),others=TOP.filter(q=>q!==o);
+  const roomy=Math.min(view.x1-view.x0,view.y1-view.y0)>=16; // in a small scene the wall and building cannot be kept inside it
+  const startClash=others.some(q=>clash(q,o)),startOut=o.k!=='tree'&&!inScene(o); // an object that is already overlapping, or outside the scene, is free to move back to a legal place
+  const ok=c=>(startClash||!others.some(q=>clash(q,c)))&&(c.k==='tree'||!roomy||startOut||inScene(c));
+  const walk=(f,t,mk)=>{const n=Math.max(1,Math.ceil(Math.hypot(t[0]-f[0],t[1]-f[1])/0.1)); // walk towards the target in small steps and stop at the first overlap, so nothing can jump across another object
+   let l=f;for(let i=1;i<=n;i++){const c=[f[0]+(t[0]-f[0])*i/n,f[1]+(t[1]-f[1])*i/n];if(!ok(mk(c)))break;l=c;}return l;};
+  const turnTo=(a0,a1,mk)=>{let d=a1-a0;d=Math.atan2(Math.sin(d),Math.cos(d));const n=Math.max(1,Math.ceil(Math.abs(d)/0.017));let l=a0;
+   for(let i=1;i<=n;i++){const a=a0+d*i/n;if(!ok(mk(a)))break;l=a;}return l;};
+  if(o.k==='wall'){
+   if(suf==='m'){const M=[(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2],a0=o.a,b0=o.b,mk=c=>({...o,a:[a0[0]+c[0]-M[0],a0[1]+c[1]-M[1]],b:[b0[0]+c[0]-M[0],b0[1]+c[1]-M[1]]});
+    const r=walk(M,w,mk),c=mk(r);o.a=c.a;o.b=c.b;}
+   else{const piv=suf==='a'?o.b:o.a,cur=suf==='a'?o.a:o.b,mk=a=>({...o,[suf==='a'?'a':'b']:[piv[0]+WALL_L*Math.cos(a),piv[1]+WALL_L*Math.sin(a)]}); // the dragged end swings the wall about the other end
+    const a1=Math.atan2(w[1]-piv[1],w[0]-piv[0]),a0=Math.atan2(cur[1]-piv[1],cur[0]-piv[0]),r=turnTo(a0,a1,mk);o[suf==='a'?'a':'b']=mk(r)[suf==='a'?'a':'b'];}
+  }else if(o.k==='building'&&suf==='r'){ // turn the building about its middle dot
+   const a1=Math.atan2(w[1]-o.y,w[0]-o.x)-Math.PI,a0=o.r||0,mk=r=>({...o,r});o.r=turnTo(a0,a0+Math.atan2(Math.sin(a1-a0),Math.cos(a1-a0)),mk);
+  }else{ // a tree or the building: it slides along other objects rather than passing through them
+   const mk=c=>({...o,x:c[0],y:c[1]}),t=o.k==='tree'?[cl(w[0],view.x0,view.x1),cl(w[1],view.y0,view.y1)]:w;
+   let r=walk([o.x,o.y],t,mk);r=walk(r,[t[0],r[1]],mk);r=walk(r,[r[0],t[1]],mk);o.x=r[0];o.y=r[1];}
  }else if(drag==='tilt'){
   // The plane of focus always passes through the hinge line, whose distance from the lens is f / sin(tilt), and through
   // the focus point on the camera axis (which stays put). So the pointer position fixes the hinge, and the hinge fixes the tilt.
@@ -811,7 +922,7 @@ function refreshLabels(){
  for(const k in L){const l=document.querySelector(`label[for="n_${k}"]`),r=document.getElementById('r_'+k);if(l)l.firstChild.nodeValue=L[k];if(r)r.setAttribute('aria-label',L[k]);}
 }
 function setUnits(imp){
- imperial=imp;OBJ_D=imp?OBJ_DI.map(x=>x/FT):OBJ_DM;buildSObjs();syncObjs();
+ const slot=SIDE.map(o=>OBJ_D.findIndex(d=>Math.abs(d-o.x)<0.05));imperial=imp;OBJ_D=imp?OBJ_DI.map(x=>x/FT):OBJ_DM;SIDE.forEach((o,k)=>{if(slot[k]>=0)o.x=OBJ_D[slot[k]];});buildSObjs();syncObjs();
  for(const [id,on] of[['un-si',!imp],['un-imp',imp]]){const b=document.getElementById(id);b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');}
  for(const k in UN){const u=UN[k],n=document.getElementById('n_'+k),r=document.getElementById('r_'+k),m=ALLCTL[k];
   const mn=imp?u.mn:m[3],mx=imp?u.mx:m[4],st=imp?u.st:m[5];for(const e of[n,r]){e.min=mn;e.max=mx;e.step=st;}
@@ -842,7 +953,7 @@ const TIPS={
  tilt:'Tilt can be adjusted by dragging the green diamond or using the controls.',
  fov:'Field of view is determined by the chosen focal length and sensor. Shading for the acceptably sharp area can be limited to the field of view using a check box under Additional controls.',
  hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is not used. Use the button to focus automatically at the hyperfocal distance if tilt is 0 degrees.',
- objs:()=>T()?'Use the check marks to position different kinds of background objects in the view. Only one kind can be used at a time.':'Use the check marks to position objects of different sizes and heights in the view. You may only have one object at each distance.',
+ objs:()=>T()?'Use the check marks to place background objects in the view. You can use all three at once. Once placed, drag the dark dot on any object to move it. Each tree moves on its own. The wall is 15 m (about 49 ft) long: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. Objects can touch but cannot overlap.':'Use the check marks to position objects of different sizes and heights in the view. You may only have one object for each starting distance. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. Objects cannot overlap: drag one up to another and keep going to jump past it. A check box stays ticked while its object is in the scene, wherever you slide it. Un-check it to remove the object.',
  auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view.',
  hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees.',
  view:'Choose between a side profile (Tilt Up/Down) or a top-down view (Tilt Left/Right). Diagonal tilt is not available.',
