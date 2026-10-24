@@ -40,7 +40,7 @@ canvas{width:100%;display:block;border-radius:6px}
 .viewsw button.on{background:var(--accent);color:#fff}
 .unitsw{margin:12px 0 0}
 .addl{margin:6px 0 10px}
-.addl .fovrow{margin:12px 0 4px}
+.addl .fovrow{margin:2px 0 14px}
 .viewsw button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .rightcol{display:grid;gap:16px;min-width:0}
 .autobtns{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 10px}
@@ -119,16 +119,17 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
     <button type="button" id="vw-top" role="switch" aria-checked="false">Tilt Left/Right</button>
    </div>
    <div id="main-controls"></div>
+   <div class="shotrow"><button type="button" id="reset" class="btn">Reset to Default</button><button type="button" id="shot-btn" class="btn" aria-haspopup="true" aria-expanded="false">Screenshot</button>
+   <span id="shot-menu" class="shotmenu" hidden role="group" aria-label="Screenshot format"><button type="button" class="btn" data-f="jpg">JPEG</button><button type="button" class="btn" data-f="pdf">PDF</button><button type="button" class="btn" data-f="clip" id="clip-btn">Copy to clipboard</button></span></div>
    <details class="addl"><summary>Additional controls</summary>
    <div id="adv-controls"></div>
    <div class="viewsw unitsw" role="group" aria-label="Units">
     <button type="button" id="un-si" role="switch" aria-checked="true" class="on">Metric (m, cm)</button>
     <button type="button" id="un-imp" role="switch" aria-checked="false">Imperial (ft, in)</button>
    </div>
-   <label class="fovrow"><input type="checkbox" id="fov-only"> Show in focus only within field of view</label>
+   <label class="fovrow" id="fov-row"><input type="checkbox" id="fov-only"> Show in focus only within field of view</label>
+   <div class="row" id="curv-row"><label for="n_curv">Field curvature</label><select id="n_curv" style="grid-column:1/3"><option value="0">None</option><option value="1">Mild</option><option value="2">Strong</option></select></div>
    </details>
-   <div class="shotrow"><button type="button" id="reset" class="btn">Reset to Default</button><button type="button" id="shot-btn" class="btn" aria-haspopup="true" aria-expanded="false">Screenshot</button>
-   <span id="shot-menu" class="shotmenu" hidden role="group" aria-label="Screenshot format"><button type="button" class="btn" data-f="jpg">JPEG</button><button type="button" class="btn" data-f="pdf">PDF</button></span></div>
    <p class="note" style="margin:0">Thin-lens model, tilt pivoting about the lens centre, focus set by sensor-to-lens extension. Real lenses differ slightly.</p>
   </div>
  </aside>
@@ -154,13 +155,12 @@ const EXTRA=[
 ['sensor','Sensor format','',0,3,1,2],
 ['coc','Circle of confusion','',0.002,0.2,0.001,0.011]];
 const ADV=[
-['dmin','Closest focus distance (m)','Sets where 0% sits on the focus scale',0.05,3,0.01,0.3],
 ['view','Scene width shown (m)','',5,25,0.5,25]];
 const ALLCTL={};MAIN.concat(ADV).forEach(c=>{ALLCTL[c[0]]=c;});
 const V={},DEF={},NOTES=[];
-// units: everything is stored in metric; imperial only changes what is shown and typed (feet for distances, inches for camera height and closest focus)
+// units: everything is stored in metric; imperial only changes what is shown and typed (feet for distances, inches for camera height)
 let imperial=false;
-const FT=3.28084,UN={h:{f:1/2.54,u:'in',mu:'cm',mn:4,mx:394,st:1},dmin:{f:39.3701,u:'in',mu:'m',mn:2,mx:118,st:0.5},view:{f:FT,u:'ft',mu:'m',mn:16.5,mx:82,st:0.5}};
+const FT=3.28084,UN={h:{f:1/2.54,u:'in',mu:'cm',mn:4,mx:394,st:1},view:{f:FT,u:'ft',mu:'m',mn:16.5,mx:82,st:0.5}};
 const uL=()=>imperial?' ft':' m',dv=x=>imperial?x*FT:x;
 const Lm=(x,d=2)=>dv(x).toFixed(d)+uL(); // a distance in metres, in the current units
 function build(id,list){
@@ -208,14 +208,14 @@ function build(id,list){
   d.innerHTML=`<label for="n_${k}">${l}</label><input type="number" id="n_${k}" min="${mn}" max="${mx}" step="${st}" value="${val}"><input type="range" id="r_${k}" aria-label="${l}" min="${mn}" max="${mx}" step="${st}" value="${val}">`;
   box.appendChild(d);
   const n=d.querySelector('[type=number]'),r=d.querySelector('[type=range]');
-  const on=(src,other)=>()=>{const x=parseFloat(src.value);if(isNaN(x))return;other.value=x;const cf=imperial&&UN[k]?UN[k].f:1;V[k]=Math.min(mx,Math.max(mn,x/cf));if(k==='dmin')syncFocus();draw();};
+  const on=(src,other)=>()=>{const x=parseFloat(src.value);if(isNaN(x))return;other.value=x;const cf=imperial&&UN[k]?UN[k].f:1;V[k]=Math.min(mx,Math.max(mn,x/cf));draw();};
   n.addEventListener('input',on(n,r));r.addEventListener('input',on(r,n));
  });
 }
 build('main-controls',MAIN);build('adv-controls',EXTRA.concat(ADV));
 {const box=document.getElementById('adv-controls'),row=id=>{const e=document.getElementById(id);return e&&(e.closest('.row')||e.parentElement);};
- // Additional controls, in this order: scene width/depth, closest focus, units, sensor format, circle of confusion, in-focus-only check
- [row('n_view'),row('n_dmin'),document.querySelector('.unitsw'),row('n_sensor'),row('n_coc'),document.querySelector('.fovrow')].forEach(e=>{if(e)box.appendChild(e);});}
+ // Additional controls, in this order: units, scene width/depth, field curvature, in-focus-only check, sensor format, circle of confusion
+ [document.querySelector('.unitsw'),row('n_view'),document.getElementById('curv-row'),document.getElementById('fov-row'),row('n_sensor'),row('n_coc')].forEach(e=>{if(e)box.appendChild(e);});}
 // focus: slider position (0-100, log scale, 100 = infinity) <-> distance in metres along the lens axis
 const FAR=5000;
 const tickStep=(span,n)=>imperial?nice(span*FT/n)/FT:nice(span/n); // a round step in the current units, in metres
@@ -223,8 +223,9 @@ const tickLbl=t=>+dv(t).toFixed(3)+uL();
 // slider positions above 100 go slightly past infinity (lens a little nearer the sensor than at its infinity stop). They are modelled as a
 // virtual object behind the lens (negative distance); the shortfall is 0.1% of the focal length per slider step, up to 1% at the far end.
 const pastInf=p=>Math.max(0,p-100)*0.001*V.fl; // mm short of the infinity position
-const pctToDist=p=>p>100?-V.fl/(p-100):p>=100?Infinity:V.dmin*Math.pow(FAR/V.dmin,p/100);
-const distToPct=u=>(!isFinite(u)||u>=FAR)?100:Math.min(100,Math.max(0,100*Math.log(Math.max(u,V.dmin)/V.dmin)/Math.log(FAR/V.dmin)));
+const DMIN=0.3; // closest focus distance in metres: the near end of the focus slider. Tilt-shift lenses focus as close as about 0.25 m (17 mm) to 0.5 m (90 mm), so 0.3 m serves them all
+const pctToDist=p=>p>100?-V.fl/(p-100):p>=100?Infinity:DMIN*Math.pow(FAR/DMIN,p/100);
+const distToPct=u=>(!isFinite(u)||u>=FAR)?100:Math.min(100,Math.max(0,100*Math.log(Math.max(u,DMIN)/DMIN)/Math.log(FAR/DMIN)));
 const fmtD=x=>{const v=dv(x);return(v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v))+uL();};
 function syncFocus(fromSlider){
  const u=pctToDist(V.focus);
@@ -270,7 +271,7 @@ function autoScore(nx,ny,N){
  return 0.7*(gt?g/gt:0)+0.3*(tot?sh/tot:0); // ground in the picture counts 70%, field of view 30%
 }
 function autoTiltFocus(){
- // every other setting, including closest focus distance and scene width, stays as it is
+ // every other setting, including scene width, stays as it is
  let best={s:-1,tl:0,p:0};
  const tls=[];for(let t=0;t<=15.0001;t+=(t<5?0.1:0.5))tls.push(+t.toFixed(2)); // positive tilt only
  for(const tl of tls)for(let p=0;p<=100;p+=2.5){V.tilt=tl;V.focus=p;const sc=autoScore(40,25,120);if(sc>best.s)best={s:sc,tl,p};}
@@ -338,6 +339,9 @@ async function takeScreenshot(fmt){
  g.fillStyle=muted;g.font=`${12*k}px system-ui,sans-serif`;g.textAlign='right';g.fillText('Created using Tilt-Shift Focus Explorer by Rob de Loë',pad+iw,c.height-pad-12*k);g.textAlign='left';
  // exactly 3400 pixels wide (8.5 in at 400 ppi) and no taller than 4400 (11 in); a final nudge if rounding left it a pixel off
  let fc=c;{const f=Math.min(3400/c.width,4400/c.height);if(Math.abs(f-1)>1e-9){fc=document.createElement('canvas');fc.width=Math.round(c.width*f);fc.height=Math.round(c.height*f);const fg2=fc.getContext('2d');fg2.imageSmoothingQuality='high';fg2.drawImage(c,0,0,fc.width,fc.height);}}
+ if(fmt==='clip'){ // copy to the clipboard as a PNG (the clipboard does not take JPEG), and say what happened on the Screenshot button
+  let ok=false;try{const png=await new Promise(r=>fc.toBlob(r,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);ok=true;}catch(e){}
+  const sb=document.getElementById('shot-btn');sb.textContent=ok?'Copied to clipboard':'Copy not available here';clearTimeout(takeScreenshot.t);takeScreenshot.t=setTimeout(()=>{sb.textContent='Screenshot';},2200);return;}
  let blob=await new Promise(r=>fc.toBlob(r,'image/jpeg',0.92));
  {const u=new Uint8Array(await blob.arrayBuffer());if(u[2]===0xFF&&u[3]===0xE0&&u[6]===0x4A&&u[7]===0x46){u[13]=1;u[14]=1;u[15]=144;u[16]=1;u[17]=144;blob=new Blob([u],{type:'image/jpeg'});}} // JFIF header: 400 pixels per inch, so it prints at 8.5 in wide
  const pdf=fmt==='pdf',out=pdf?pdfFromJpeg(new Uint8Array(await blob.arrayBuffer()),fc.width,fc.height):blob,fname=pdf?'tilt-shift-focus.pdf':'tilt-shift-focus.jpg';
@@ -346,6 +350,7 @@ async function takeScreenshot(fmt){
  const a=document.createElement('a');a.href=URL.createObjectURL(out);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 {const sb=document.getElementById('shot-btn'),sm=document.getElementById('shot-menu');
+ if(!(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem))document.getElementById('clip-btn').hidden=true; // no image clipboard here: leave the option out
  const show=on=>{sm.hidden=!on;sb.setAttribute('aria-expanded',on?'true':'false');};
  sb.addEventListener('click',e=>{e.stopPropagation();show(sm.hidden);});
  sm.addEventListener('click',e=>{const f=e.target.dataset&&e.target.dataset.f;if(f){show(false);takeScreenshot(f);}});
@@ -353,16 +358,18 @@ async function takeScreenshot(fmt){
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sm.hidden){show(false);sb.focus();}});}
 document.getElementById('auto-btn').addEventListener('click',autoTiltFocus);
 document.getElementById('fov-only').addEventListener('change',e=>{fovOnly=e.target.checked;draw();});
+document.getElementById('n_curv').addEventListener('change',e=>{curvLvl=+e.target.value;curved=curvLvl>0;updateAuto();draw();});
 document.getElementById('hyper-btn').addEventListener('click',()=>{setFocusDist(hyperM());draw();});
 function resetAll(){ // everything back to its default; the view and the units are left as they are
  for(const k in DEF)if(k!=='focus'&&k!=='coc')setVal(k,DEF[k]);
  focusAnchor=null;tiltAnchor=null;
  setCocMode('sharp');
+ curvLvl=0;curved=false;document.getElementById('n_curv').value='0';updateAuto();
  fovOnly=false;document.getElementById('fov-only').checked=false;
  TOP=[];SIDE=[];syncObjs();
  setFocusDist(DEFAULT_FOCUS_M);
 }
-document.getElementById('reset').addEventListener('click',()=>{resetAll();draw();});
+document.getElementById('reset').addEventListener('click',()=>{resetAll();draw();setHelp(false);}); // Reset to Default also turns the Help bubbles off
 applySensor(DEF.sensor);setCocMode('sharp');
 setFocusDist(DEFAULT_FOCUS_M);
 
@@ -451,19 +458,25 @@ function model(){
  // top-down view: the same geometry turned on its side. Left/right replaces up/down (positive is to the right), the sensor's width
  // sets the field of view, and the lens height no longer matters.
  const sh=topView?-V.shift:V.shift;
- M={f,A:f/V.ap,j,Zc,th,ph,st:Math.sin(th),ct,sp:Math.sin(ph),cp:Math.cos(ph),h:(topView?0:V.h/100)+sh/1000*Math.cos(ph),hc:topView?0:V.h/100,c:V.coc,S:topView?V.sensW:V.sens,shift:sh}; // the camera (sensor) stays fixed at the set height; shift raises or lowers the lens from there
+ M={f,A:f/V.ap,j,Zc,th,ph,st:Math.sin(th),ct,sp:Math.sin(ph),cp:Math.cos(ph),h:(topView?0:V.h/100)+sh/1000*Math.cos(ph),hc:topView?0:V.h/100,c:V.coc,S:topView?V.sensW:V.sens,shift:sh,kap:0,rc:V.sensW/2+15}; // the camera (sensor) stays fixed at the set height; shift raises or lowers the lens from there
+ // field curvature: an image point off the lens axis forms nearer the lens than the paraxial image, by kap * (distance from the axis)^2, so a flat
+ // sensor sees the best focus bend toward the camera at the edges. kap is set so that the surface of best focus has moved 8% of the focus
+ // distance nearer at 21.9 mm from the lens axis, the edge of a 43.8 mm wide frame (the same lens curvature in both views and with any sensor) ("medium"), which keeps the curve easy to see at any focus distance (the shift grows with the square of the distance from the axis).
+ if(curved){const Zr=(isFinite(Zc)&&Zc>0)?Math.min(Zc,50000):10000;M.kap=0.08*(curvLvl===1?0.5:1)*f*f/(Zr*21.9*21.9);} // a property of the lens, so it does not change with the sensor: the reference is the edge of a 43.8 mm wide frame
 }
 // blur circle diameter (mm) on the sensor for a world point (metres)
-function blurAt(xw,yw){
+function sigAt(xw,yw){ // signed defocus 1+j/IZ: 0 on the surface of best focus, and the blur circle is A times its size; NaN where there is no real image
  const dx=xw*1000,dy=(yw-M.h)*1000;
  const Z=dx*M.cp-dy*M.sp,X=dx*M.sp+dy*M.cp;
  const zl=X*M.st+Z*M.ct,xl=X*M.ct-Z*M.st;
- if(zl<=M.f*1.0001)return Infinity;
- const vi=M.f*zl/(zl-M.f),xi=-xl*vi/zl,zi=-vi;
+ if(zl<=M.f*1.0001)return NaN;
+ if(Z<=0||Math.abs(X*M.j/Z)>M.rc)return NaN; // beyond the edge of the image circle (rc, mm from the lens axis) the lens forms no usable image
+ const vi=M.f*zl/(zl-M.f),xi=-xl*vi/zl,zi=-vi+M.kap*xi*xi;
  const IZ=-xi*M.st+zi*M.ct;
- if(IZ>=0)return Infinity;
- return M.A*Math.abs(1+M.j/IZ);
+ if(IZ>=0)return NaN;
+ return 1+M.j/IZ;
 }
+function blurAt(xw,yw){const s=sigAt(xw,yw);return isNaN(s)?Infinity:M.A*Math.abs(s);}
 function visible(xw,yw){
  const dx=xw*1000,dy=(yw-M.h)*1000;
  const Z=dx*M.cp-dy*M.sp,X=dx*M.sp+dy*M.cp;
@@ -492,6 +505,8 @@ function nice(r){const p=Math.pow(10,Math.floor(Math.log10(r)));for(const m of[1
 
 let forceDpr=0; // set while drawing the screenshot, so that it comes out at print resolution
 let fovOnly=false; // true: the teal shading of the acceptably sharp zone is drawn only inside the field of view
+let curvLvl=0; // field curvature: 0 none, 1 mild (half of strong), 2 strong
+let curved=false; // true (mild or strong): the lens has field curvature (both views): the surface of best focus bends toward the camera away from the lens axis
 let topView=false; // false: side view (tilt up/down); true: top-down view (tilt left/right)
 let focusAnchor=null; // world point (m) the red dot stays as close to as the plane of focus allows; null means the default spot
 let hideHandles=false; // true while drawing the screenshot, which leaves out the drag handles
@@ -500,6 +515,7 @@ const off=document.createElement('canvas');
 function draw(){
  TA=[];PENDING=[];
  model();
+ const CV=curved; // field curvature on: the focus surface and the limits are curves, drawn inside the field of view
  // the canvas is sized to its on-screen width so text and handles stay a usable size on phones; drawing is in CSS pixels
  const dpr=forceDpr||Math.min(3,(typeof devicePixelRatio==='number'&&devicePixelRatio)||1),rc=sc.getBoundingClientRect();
  const RW=Math.max(300,Math.round(rc.width)||960),RHt=Math.round(RW*0.675);
@@ -520,11 +536,12 @@ function draw(){
  const PX=x=>(x-x0)/(x1-x0)*W,PY=y=>(y1-y)/(y1-y0)*H,mpp=(x1-x0)/W;
  // where to hang an information bubble on a line: a spot on the line inside the picture, a given fraction of the way along its visible part
  const lineTip=(id,A,d,f,dx,dy)=>{const R=(x1-x0)*3,N=600,pts=[];for(let i=0;i<=N;i++){const t=-R+2*R*i/N,x=A[0]+d[0]*t,y=A[1]+d[1]*t;if(x>x0+(x1-x0)*0.06&&x<x1-(x1-x0)*0.06&&y>y0+(y1-y0)*0.06&&y<y1-(y1-y0)*0.06)pts.push([x,y]);}if(!pts.length)return;const q=pts[Math.min(pts.length-1,Math.floor(pts.length*f))];TA.push({id,u:PX(q[0]),v:PY(q[1]),dx,dy});};
- const linePick=(A,d,ord)=>{ // the visible part of a line, as sample points; highest first, and along a level line the left-hand end first
-  const R=(x1-x0)*3,N=600,pts=[];for(let i=0;i<=N;i+=6){const t=-R+2*R*i/N,x=A[0]+d[0]*t,y=A[1]+d[1]*t;if(x>x0+(x1-x0)*0.06&&x<x1-(x1-x0)*0.06&&y>y0+(y1-y0)*0.06&&y<y1-(y1-y0)*0.06)pts.push({u:PX(x),v:PY(y),up:topView?x:y,left:topView?y:-x,wx:x,wy:y});}
-  if(!pts.length)return null;pts.forEach(q=>{q.al=ord==='x'?q.wx:ord==='y'?q.wy:q.up+1e-4*q.left;});return{pts,hi:Math.max(...pts.map(q=>q.al)),lo:Math.min(...pts.map(q=>q.al))};};
+ const inW=(x,y)=>{const dx=x,dy=y-M.h,Z=dx*M.cp-dy*M.sp,X=dx*M.sp+dy*M.cp;return Z>0&&Math.abs(X*M.j/Z)<=M.rc*0.96;}; // inside the image circle
+ const linePick=(A,d,ord,wedge)=>{ // the visible part of a line, as sample points; highest first, and along a level line the left-hand end first (wedge: only the part inside the image circle, if there is any)
+  const R=(x1-x0)*3,N=600,pts=[];for(let i=0;i<=N;i+=6){const t=-R+2*R*i/N,x=A[0]+d[0]*t,y=A[1]+d[1]*t;if(x>x0+(x1-x0)*0.06&&x<x1-(x1-x0)*0.06&&y>y0+(y1-y0)*0.06&&y<y1-(y1-y0)*0.06&&(!wedge||inW(x,y)))pts.push({u:PX(x),v:PY(y),up:topView?x:y,left:topView?y:-x,wx:x,wy:y});}
+  if(!pts.length)return wedge?linePick(A,d,ord,false):null;pts.forEach(q=>{q.al=ord==='x'?q.wx:ord==='y'?q.wy:q.up+1e-4*q.left;});return{pts,hi:Math.max(...pts.map(q=>q.al)),lo:Math.min(...pts.map(q=>q.al))};};
  const pointAt=(lp,frac)=>{const tg=lp.hi-frac*(lp.hi-lp.lo);return lp.pts.reduce((m,q)=>Math.abs(q.al-tg)<Math.abs(m.al-tg)?q:m);};
- document.getElementById('hyp-leg').textContent='Hyperfocal distance ('+fmtD(hyperM())+')';{const hb=document.getElementById('hyper-btn'),tl=Math.abs(+V.tilt)>=1e-9;hb.disabled=tl;hb.title=tl?'Available only when lens tilt is 0':'';}document.getElementById('hyp-leg').parentElement.style.display=Math.abs(+V.tilt)<1e-9?'':'none'; // hyperfocal distance only means something with no tilt
+ document.getElementById('hyp-leg').textContent='Hyperfocal distance ('+fmtD(hyperM())+')';{const hb=document.getElementById('hyper-btn'),tl=Math.abs(+V.tilt)>=1e-9;hb.disabled=tl||curved;hb.title=curved?'Not available with field curvature':tl?'Available only when lens tilt is 0':'';}document.getElementById('hyp-leg').parentElement.style.display=(Math.abs(+V.tilt)<1e-9&&!curved)?'':'none'; // hyperfocal distance only means something with no tilt and a flat field
  view={x0,x1,y0,y1,W:RW,H:RH,vw:W,vh:H,top:topView};
  // labels are queued and placed together at the end so that none overlap each other or the markers
  const labels=[],obst=[];
@@ -542,7 +559,7 @@ function draw(){
    img.data[i]=ar;img.data[i+1]=ag;img.data[i+2]=ab;img.data[i+3]=a*255;}}
  octx.putImageData(img,0,0);sx.imageSmoothingEnabled=true;
  sx.save();
- if(fovOnly){const fp=[[PX(0),PY(M.h)]],fr=(x1-x0)*40;for(const s2 of[-1,1]){const Xs=s2*M.S/2-M.shift,len=Math.hypot(Xs,M.j),[wx,wy]=cw(-Xs/len*fr,M.j/len*fr);fp.push([PX(wx),PY(wy)]);}
+ {const fp=[[PX(0),PY(M.h)]],fr=(x1-x0)*40;for(const s2 of[-1,1]){const Xs=fovOnly?s2*M.S/2-M.shift:s2*M.rc,len=Math.hypot(Xs,M.j),[wx,wy]=cw(-Xs/len*fr,M.j/len*fr);fp.push([PX(wx),PY(wy)]);}
   sx.beginPath();fp.forEach((q,n)=>n?sx.lineTo(q[0],q[1]):sx.moveTo(q[0],q[1]));sx.closePath();sx.clip();}
  sx.drawImage(off,0,0,W,H);sx.restore();
  // ground (side view only: from above the ground is simply the whole picture)
@@ -659,7 +676,7 @@ function draw(){
  const step=tickStep(x1-x0,8);sx.fillStyle=muted;sx.font='13px system-ui,sans-serif';sx.textAlign='center';
  if(!topView)for(let t=Math.ceil(x0/step)*step;t<x1;t+=step){if(PX(t)<68)continue;sx.fillRect(PX(t),gy+3,1,6);sx.fillText(tickLbl(t),PX(t),gy+24);}
  // hyperfocal distance marker, just under the ground line on the distance axis
- if(!topView&&Math.abs(+V.tilt)<1e-9){const hx=hyperM()*M.cp;if(hx>x0&&hx<x1&&PX(hx)>68){const q=PX(hx),y=gy+4;TA.push({id:'hyper',u:q,v:y,dx:18,dy:12});sx.fillStyle=css('--hyper');sx.beginPath();sx.moveTo(q,y);sx.lineTo(q-6,y+11);sx.lineTo(q+6,y+11);sx.closePath();sx.fill();}}
+ if(!topView&&!curved&&Math.abs(+V.tilt)<1e-9){const hx=hyperM()*M.cp;if(hx>x0&&hx<x1&&PX(hx)>68){const q=PX(hx),y=gy+4;TA.push({id:'hyper',u:q,v:y,dx:18,dy:12});sx.fillStyle=css('--hyper');sx.beginPath();sx.moveTo(q,y);sx.lineTo(q-6,y+11);sx.lineTo(q+6,y+11);sx.closePath();sx.fill();}}
  // field of view
  TA.push({id:'cam',u:PX(0),v:PY(M.h),dx:-44,dy:24});
  {const fx=[1,-1];for(const s3 of fx){const Xs=s3*M.S/2-M.shift,len=Math.hypot(Xs,M.j);let ok=false;for(let f=1.2;f>0.1&&!ok;f-=0.05){const t=(x1-x0)*f,[wx,wy]=cw(-Xs/len*t,M.j/len*t);if(wx>x0+(x1-x0)*0.3&&wx<x1-(x1-x0)*0.08&&wy>y0+(y1-y0)*0.1&&wy<y1-(y1-y0)*0.1){TA.push({id:'fov',u:PX(wx),v:PY(wy),dx:0,dy:0});ok=true;}}if(ok)break;}}
@@ -670,10 +687,12 @@ function draw(){
  // lens axis: the line through the lens centre at right angles to the lens, which tilts with it (dash-dot)
  {const far=(x1-x0)*40,a=cw(-M.st*far,-M.ct*far),b=cw(M.st*far,M.ct*far);
   sx.save();sx.setLineDash([1.5,4]);sx.lineCap='round';sx.strokeStyle=muted;sx.globalAlpha=0.6;sx.lineWidth=1.3;sx.beginPath();sx.moveTo(PX(a[0]),PY(a[1]));sx.lineTo(PX(b[0]),PY(b[1]));sx.stroke();sx.restore();{const hh=Math.hypot(b[0],b[1]-M.h),lp=linePick([0,M.h],[b[0]/hh,(b[1]-M.h)/hh],'x');if(lp)PENDING.push({id:'laxis',lp,frac:0.15});}}
+ // the part of the picture the lens forms an image of: a wedge from the lens out to the edge of its image circle. Lines are solid inside it, dashed beyond.
+ const wedgeClip=()=>{const fp=[[PX(0),PY(M.h)]],fr=(x1-x0)*40;for(const s2 of[-1,1]){const Xs=s2*M.rc,len=Math.hypot(Xs,M.j),[wx,wy]=cw(-Xs/len*fr,M.j/len*fr);fp.push([PX(wx),PY(wy)]);}sx.beginPath();fp.forEach((q,n)=>n?sx.lineTo(q[0],q[1]):sx.moveTo(q[0],q[1]));sx.closePath();sx.clip();};
  // limits of acceptable sharpness: the two planes where blur just reaches the circle of confusion. These are exact straight
  // lines through the hinge (the planes of focus for a sensor moved slightly nearer or farther), so they can be drawn crisply.
  {const rr=M.c/M.A,j0=M.j;
-  sx.strokeStyle=acc;sx.lineWidth=2;
+  sx.strokeStyle=acc;sx.lineWidth=2;sx.globalAlpha=0.4;sx.setLineDash([6,5]); // dashed (faint) everywhere; solid on top inside the image circle when the field is flat
   const cands=[];
   for(const j1 of[j0/(1+rr),rr<0.999?j0/(1-rr):null]){
    if(j1===null)continue;
@@ -681,9 +700,11 @@ function draw(){
    if(Q.length<2)continue;
    const A=cw(Q[0][0]/1000,Q[0][1]/1000),B=cw(Q[1][0]/1000,Q[1][1]/1000);
    let dx=B[0]-A[0],dy=B[1]-A[1];const L=Math.hypot(dx,dy);dx/=L;dy/=L;
-   {const lp=linePick(A,[dx,dy]);if(lp)cands.push({lp,A,d:[dx,dy]});}
+   {const lp=linePick(A,[dx,dy],undefined,true);if(lp)cands.push({lp,A,d:[dx,dy]});}
    sx.beginPath();sx.moveTo(PX(A[0]-dx*1e5),PY(A[1]-dy*1e5));sx.lineTo(PX(A[0]+dx*1e5),PY(A[1]+dy*1e5));sx.stroke();
+   if(!CV){sx.save();sx.globalAlpha=1;sx.setLineDash([]);wedgeClip();sx.beginPath();sx.moveTo(PX(A[0]-dx*1e5),PY(A[1]-dy*1e5));sx.lineTo(PX(A[0]+dx*1e5),PY(A[1]+dy*1e5));sx.stroke();sx.restore();}
   }
+  sx.globalAlpha=1;sx.setLineDash([]);
   // the information bubble sits on one teal line, high up in the view: the upper line in the side view and the left-hand line from above (when the lines are level or upright, so that this does not pick one, the other of the two decides)
   if(cands.length){const xm=(x0+x1)/2,yAt=k=>Math.abs(k.d[0])>1e-4?k.A[1]+k.d[1]/k.d[0]*(xm-k.A[0]):null; // height (side view) or leftward distance (top view) of the line at the middle of the view
    const better=(k,m)=>{const a=yAt(k),b=yAt(m);if(a!==null&&b!==null&&Math.abs(a-b)>1e-6)return a>b;return topView?k.A[0]>m.A[0]:k.A[0]<m.A[0];}; // level or upright lines: the upper one from above, the left-hand one from the side
@@ -695,11 +716,27 @@ function draw(){
  if(P.length===2){
   const A=cw(P[0][0]/1000,P[0][1]/1000),B=cw(P[1][0]/1000,P[1][1]/1000);
   let dx=B[0]-A[0],dy=B[1]-A[1];const L=Math.hypot(dx,dy);dx/=L;dy/=L;
-  sx.strokeStyle=acc2;sx.lineWidth=2.5;sx.beginPath();
+  sx.strokeStyle=acc2;sx.lineWidth=2.5;sx.globalAlpha=0.4;sx.setLineDash([6,5]);sx.beginPath();
   sx.moveTo(PX(A[0]-dx*1e5),PY(A[1]-dy*1e5));sx.lineTo(PX(A[0]+dx*1e5),PY(A[1]+dy*1e5));sx.stroke();
+  if(!CV){sx.save();sx.globalAlpha=1;sx.setLineDash([]);wedgeClip();sx.beginPath();sx.moveTo(PX(A[0]-dx*1e5),PY(A[1]-dy*1e5));sx.lineTo(PX(A[0]+dx*1e5),PY(A[1]+dy*1e5));sx.stroke();sx.restore();}
+  sx.globalAlpha=1;sx.setLineDash([]);
   info={A,dx,dy};
-  {const lp=linePick(A,[dx,dy]);if(lp)PENDING.push({id:'plane',lp,frac:topView?0.30:0.25});} // its information bubble, well away from the focus control
+  {const lp=linePick(A,[dx,dy],undefined,true);if(lp)PENDING.push({id:'plane',lp,frac:topView?0.30:0.25});} // its information bubble, well away from the focus control
  }
+ // field curvature: the curved surface of best focus and its limits, traced along rays from the lens. The rays fan out past the field of view, to the edge
+ // of the lens's image circle (the lens forms an image beyond the sensor, and lens shift moves the sensor within it), so the curves extend past the frame, like the flat lines.
+ if(CV){const rr=M.c/M.A,N=200,T=400,tmax=(x1-x0)*3,tmin=0.02*(x1-x0),RC=M.rc; // RC: radius of the image circle, mm from the lens axis: half the sensor width plus the full 15 mm of lens shift
+  const tg=[[0,acc2,2.5],[rr,acc,2],[-rr,acc,2]],lines=tg.map(()=>[]);
+  for(let n=0;n<=N;n++){const u=-RC+2*RC*n/N,len=Math.hypot(u,M.j),dX=-u/len,dZ=M.j/len;
+   const pt=t=>cw(dX*t,dZ*t);
+   const val=t=>{const q=pt(t);return sigAt(q[0],q[1]);};
+   const ts=[];for(let i=0;i<=T;i++)ts.push(tmin+(tmax-tmin)*i/T);
+   const vs=ts.map(val);
+   tg.forEach(([target],k)=>{let found=null;
+    for(let i=1;i<=T&&found===null;i++){const a=vs[i-1]-target,b=vs[i]-target;if(!isNaN(a)&&!isNaN(b)&&a*b<=0&&a!==b){let lo=ts[i-1],hi=ts[i],fl=a;for(let it=0;it<30;it++){const md=(lo+hi)/2,fm=val(md)-target;if(isNaN(fm))break;if(fl*fm<=0)hi=md;else{lo=md;fl=fm;}}found=(lo+hi)/2;}}
+    lines[k].push(found===null?null:pt(found));});}
+  tg.forEach(([,col,lw],k)=>{sx.strokeStyle=col;sx.lineWidth=lw;sx.beginPath();let pen=false;
+   lines[k].forEach(q=>{if(!q){pen=false;return;}if(pen)sx.lineTo(PX(q[0]),PY(q[1]));else{sx.moveTo(PX(q[0]),PY(q[1]));pen=true;}});sx.stroke();});}
  // camera schematic
  const k=mpp*11,lens=[0,M.h];
  sx.strokeStyle=fg;sx.lineWidth=3;
@@ -736,7 +773,7 @@ function draw(){
   for(let t=Math.ceil(x0/st)*st;t<x1;t+=st){const y=RH-PX(t);if(y<8||y>RH-bh-8)continue;sx.beginPath();sx.moveTo(aw-6,y);sx.lineTo(aw,y);sx.stroke();sx.fillText(tickLbl(t),aw-9,y+4);}
   sx.textAlign='center';
   for(let t=Math.ceil(y0/ps)*ps;t<y1;t+=ps){const x=PY(t);if(x<aw+16||x>RW-16)continue;sx.beginPath();sx.moveTo(x,RH-bh);sx.lineTo(x,RH-bh+6);sx.stroke();sx.fillText(tickLbl(Math.abs(t)),x,RH-8);}
-  if(Math.abs(+V.tilt)<1e-9){const hx=hyperM()*M.cp;if(hx>x0&&hx<x1){const y=RH-PX(hx);if(y>8&&y<RH-bh-8){TA.push({id:'hyper',u:aw+34,v:y,real:1});sx.fillStyle=css('--hyper');sx.beginPath();sx.moveTo(aw+4,y);sx.lineTo(aw+15,y-6);sx.lineTo(aw+15,y+6);sx.closePath();sx.fill();}}}
+  if(!curved&&Math.abs(+V.tilt)<1e-9){const hx=hyperM()*M.cp;if(hx>x0&&hx<x1){const y=RH-PX(hx);if(y>8&&y<RH-bh-8){TA.push({id:'hyper',u:aw+34,v:y,real:1});sx.fillStyle=css('--hyper');sx.beginPath();sx.moveTo(aw+4,y);sx.lineTo(aw+15,y-6);sx.lineTo(aw+15,y+6);sx.closePath();sx.fill();}}}
   sx.restore();
  }else
  {const ps=tickStep(y1-y0,11),aw=52;
@@ -854,8 +891,9 @@ function draw(){
   if(isFinite(M.Zc)&&M.Zc>0){const d=M.Zc/1000,F=cw(0,d),ys=[-1,1].map(s2=>{const Xs=s2*M.S/2-M.shift,den=M.j*M.cp-Xs*M.sp;return den>1e-9?M.h+(F[0])*(-M.j*M.sp-Xs*M.cp)/den:NaN;});
    if(ys.every(isFinite))fr=fmtD(Math.abs(ys[1]-ys[0]));}
   row(topView?'Frame width at focus':'Frame height at focus',fr);}
+ row('Field curvature',['None','Mild','Strong'][curvLvl]);
  row('Plane crosses lens axis',M.Zc<0?'behind lens (past infinity)':isFinite(M.Zc)?fmtD(M.Zc/1000):'∞');
- document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus']:['Ground in focus','Plane meets ground','Vertical field of view','Frame height at focus']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
+ document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus','Field curvature']:['Ground in focus','Plane meets ground','Vertical field of view','Frame height at focus','Field curvature']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
  placeSceneTips();
 }
 // dragging the handles
@@ -930,7 +968,7 @@ sc.addEventListener('pointerup',endDrag);sc.addEventListener('pointercancel',end
 if(typeof window!=='undefined')window.addEventListener('resize',draw);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 function refreshLabels(){
- const L={cam:topView?'Camera rotation (°)':'Camera tilt (°)',h:'Camera height from ground ('+(imperial?'in':'cm')+')',dmin:'Closest focus distance ('+(imperial?'in':'m')+')',view:(topView?'Scene depth shown (':'Scene width shown (')+(imperial?'ft':'m')+')',focus:'Focus distance ('+(imperial?'ft':'m')+')'};
+ const L={cam:topView?'Camera rotation (°)':'Camera tilt (°)',h:'Camera height from ground ('+(imperial?'in':'cm')+')',view:(topView?'Scene depth shown (':'Scene width shown (')+(imperial?'ft':'m')+')',focus:'Focus distance ('+(imperial?'ft':'m')+')'};
  for(const k in L){const l=document.querySelector(`label[for="n_${k}"]`),r=document.getElementById('r_'+k);if(l)l.firstChild.nodeValue=L[k];if(r)r.setAttribute('aria-label',L[k]);}
 }
 function setUnits(imp){
@@ -941,12 +979,15 @@ function setUnits(imp){
   setVal(k,V[k]);}
  refreshLabels();syncFocus();draw();
 }
+function updateAuto(){ // Auto Tilt/Focus assumes a flat field and works only in the Tilt Up/Down view
+ const ab=document.getElementById('auto-btn');ab.disabled=topView||curved;ab.title=topView?'Not available in the Tilt Left/Right view':curved?'Not available with field curvature':'';
+}
 function setView(top){
  if(top!==topView)resetAll(); // changing view starts again from the defaults, just as Reset to Default does
  topView=top;focusAnchor=null;tiltAnchor=null;
  for(const [id,on] of[['vw-side',!top],['vw-top',top]]){const b=document.getElementById(id);b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');}
  document.querySelectorAll('.legend .gl').forEach(e=>{e.style.display=top?'none':'';});
- {const ab=document.getElementById('auto-btn');ab.disabled=top;ab.title=top?'Not available in the Tilt Left/Right view':'';}
+ updateAuto();
  refreshLabels();
  document.getElementById('n_h').closest('.row').style.display=top?'none':''; // lens height has no effect when looking from above
  document.getElementById('objs-side').style.display=top?'none':'';document.getElementById('objs-body').style.display=top?'':'none';
@@ -964,33 +1005,33 @@ const TIPS={
  cam:'The tool assumes the camera is attached to a tripod, with a tilt-shift lens attached. Applying tilt will tilt the lens, but the sensor will not move. The position and orientation of the camera can be adjusted using the controls.',
  focus:'The point where the plane of focus crosses the lens axis can be changed by dragging the red circle, or by using the controls.',
  tilt:'Tilt can be adjusted by dragging the green diamond or using the controls.',
- fov:'Field of view is determined by the chosen focal length and sensor. Shading for the acceptably sharp area can be limited to the field of view using a check box under Additional controls.',
- hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is not used. Use the button to focus automatically at the hyperfocal distance if tilt is 0 degrees.',
+ fov:'Field of view is determined by the chosen focal length and sensor. The teal shading for the acceptably sharp area extends beyond it, to the edge of the lens\'s image circle (the lens forms an image beyond the sensor, and lens shift moves the sensor within it). The shading can be limited to the field of view using a check box under Additional controls.',
+ hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is 0 degrees and Field curvature is None. Use the button to focus automatically at the hyperfocal distance in those conditions.',
  objs:()=>T()?'Use the check marks to place background objects in the view. You can use all three at once. Once placed, drag the dark dot on any object to move it. Each tree moves on its own. The wall is 15 m (about 49 ft) long: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. Objects can touch but cannot overlap.':'Use the check marks to position objects of different sizes and heights in the view. You may only have one object for each starting distance. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. Objects cannot overlap: drag one up to another and keep going to jump past it. A check box stays ticked while its object is in the scene, wherever you slide it. Un-check it to remove the object.',
- auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view.',
- hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees.',
+ auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view. It is also greyed out when Field curvature is Mild or Strong: it works out the best tilt and focus for a flat field, so its answer would no longer match the curved field. Set Field curvature to None to use it.',
+ hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees. It is also greyed out when Field curvature is Mild or Strong: the hyperfocal distance assumes a flat field, and with a curved field the sharp zone near the edges of the picture starts closer than it does on the lens axis. Set Field curvature to None to use it.',
  view:'Choose between a side profile (Tilt Up/Down) or a top-down view (Tilt Left/Right). Diagonal tilt is not available. Changing the view also resets all settings and background objects to their defaults.',
  fl:'Choose the focal length of the lens. The vertical or horizontal field of view is determined by the chosen focal length and the sensor size. You can choose sensor size under Additional controls.',
  ap:'Choose the aperture of the lens in full or half stops.',
  h:'In Tilt Up/Down view, choose the height of the camera relative to the ground.',
  cam_c:()=>T()?'Rotate the camera and lens clockwise or counterclockwise.':'Lean the camera and lens up or down: positive values point the camera down, negative values point it up.',
  tilt_c:'Apply tilt in degrees. When tilt is 0 degrees, the lens functions like a non-tilt lens. Positive and negative tilt can be used.',
- focus_c:'Choose where the plane of focus intersects the lens axis. The minimum focus distance is set separately (Additional controls). You can focus past infinity. Type "inf" for infinity.',
+ focus_c:()=>'Choose where the plane of focus intersects the lens axis, from the closest focus distance of 0.3 m ('+(imperial?'about 1 ft':'30 cm')+', as close as any tilt-shift lens focuses) out to infinity. You can focus past infinity. Type "inf" for infinity.',
  shift_c:'Shift the lens up to 15mm (up or down in Tilt Up/Down view, and left or right in Tilt Left/Right view).',
  view_c:()=>T()?'Sets how much of the scene is shown in the distance direction. Use a larger value to see more of the scene, or a smaller one to zoom in.':'Sets how much of the scene is shown across the display. Use a larger value to see more of the scene, or a smaller one to zoom in.',
- dmin:'Set the closest distance the lens can focus. This is also the near end of the focus slider.',
  units:'Switch between Metric and Imperial units.',
- sensor:'Choose the sensor format. This affects the field of view and the frame size shown in the results. The circle of confusion is set separately.',
+ sensor:'Choose the sensor format. This affects the field of view, the frame size shown in the results, and the size of the lens\'s image circle (half the sensor width plus the 15 mm of lens shift). The circle of confusion is set separately.',
  coc:'The largest blur spot on the sensor that still counts as acceptably sharp, in mm. It sets the teal limits of acceptable sharpness: a smaller value is stricter and makes the sharp zone narrower. Sharp (0.011 mm, the default) suits close inspection or large prints; Soft (0.021 mm) is more tolerant; Custom lets you enter your own value in mm. It is chosen separately from the sensor format.',
- fovchk:'Check this box to limit the teal shading that represents the area in sharp focus to the field of view.',
- reset:'Returns all settings to their defaults, including the background objects. The view and the units you have chosen are not changed.',
- plane:'The plane of focus is the flat surface where everything is rendered as sharp as the lens can make it. Here it is seen edge-on, as the red line. Points in front of or behind it are blurred more and more the farther they are from it. The focus distance moves the plane nearer or farther, and lens tilt turns it about the hinge line.',
- limits:'The teal lines mark the limits of acceptable sharpness. Anything between them counts as acceptably sharp. That means a point is blurred by no more than the circle of confusion, the largest blur spot on the sensor that still looks like a sharp point at normal viewing size. The explorer finds the limits by working out, with a thin-lens model, where the blur grows to that size in front of and behind the plane of focus. A wider aperture or a longer lens narrows the zone, and a larger circle of confusion widens it. With tilt, the zone is a wedge that is narrowest at the hinge.',
- hinge:'The hinge line is the line the plane of focus pivots around as the focus distance changes. It lies at the focal length divided by the sine of the tilt angle from the lens, in the plane through the lens parallel to the sensor, so more tilt brings it closer. The green dot marks the hinge and the dashed green line joins it to the lens. It is not shown when tilt is 0.',
+ curv:'Real lenses do not focus on a perfectly flat plane. With field curvature, the surface of best focus bends toward the camera as you move away from the lens axis, so the sharp zone becomes a shallow curve instead of a straight line. The curve is symmetrical about the lens axis. Choose None for a flat field, Mild or Strong. With Strong, at 21.9 mm from the lens axis (the edge of the 43.8 mm wide medium format frame) the best focus is about 8% nearer than at the centre; Mild is half of that. The curvature belongs to the lens, so a smaller sensor, which uses only the middle of the image, shows less of it. The curve carries on past the edges of the field of view, out to the edge of the lens\'s image circle, because the lens forms an image beyond the sensor (lens shift moves the sensor within it). The faint dashed lines show where the plane of focus and the limits of acceptable sharpness would be with a flat field. With field curvature on, Auto Tilt/Focus and the hyperfocal distance are switched off, because both assume a flat field. The red and green handles still move along the straight reference lines, so away from the lens axis they sit off the curve.',
+ fovchk:'The teal shading that represents the area in sharp focus normally extends to the edge of the lens\'s image circle. Check this box to limit it to the field of view.',
+ reset:'Returns all settings to their defaults, including the background objects. Field curvature goes back to None and any Help bubbles are turned off. The view and the units you have chosen are not changed.',
+ plane:'The plane of focus is the flat surface where everything is rendered as sharp as the lens can make it. Here it is seen edge-on, as the red line. The line is solid where the lens forms an image, inside its image circle, and dashed beyond that. Points in front of or behind it are blurred more and more the farther they are from it. The focus distance moves the plane nearer or farther, and lens tilt turns it about the hinge line. With field curvature on, this straight line is only a faint reference; the solid curve is the surface of best focus.',
+ limits:'The teal lines mark the limits of acceptable sharpness. The lines are solid where the lens forms an image, inside its image circle, and dashed beyond that. Anything between the teal lines counts as acceptably sharp. That means a point is blurred by no more than the circle of confusion, the largest blur spot on the sensor that still looks like a sharp point at normal viewing size. The explorer finds the limits by working out, with a thin-lens model, where the blur grows to that size in front of and behind the plane of focus. A wider aperture or a longer lens narrows the zone, and a larger circle of confusion widens it. With tilt, the zone is a wedge that is narrowest at the hinge. With field curvature on, these straight lines are only faint references; the solid teal curves are the limits.',
+ hinge:'The hinge line is the line the plane of focus pivots around as the focus distance changes. It lies at the focal length divided by the sine of the tilt angle from the lens, in the plane through the lens parallel to the sensor, so more tilt brings it closer. The green dot marks the hinge and the dashed green line joins it to the lens. It is not shown when tilt is 0. The hinge belongs to the flat-field plane, so with field curvature on it describes the faint straight reference lines.',
  lplane:'The dotted line through the lens is the lens plane, the plane of the lens itself. It stays square to the lens axis and swings with the lens when tilt is applied. The plane of focus meets it along the same line where it meets the extended sensor plane (the Scheimpflug rule).',
  laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens. The focus distance is measured to the point where the plane of focus crosses this line.',
- readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point.':'Ground in focus: the stretch of ground, measured from the camera, that is acceptably sharp. Plane meets ground: where the plane of focus reaches the ground. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point.',
- shot:'Generate and save a summary image of the current view and key parameters as a JPEG or PDF.'
+ readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature: the setting chosen under Additional controls.':'Ground in focus: the stretch of ground, measured from the camera, that is acceptably sharp (within the lens\'s image circle). Plane meets ground: where the plane of focus reaches the ground. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature: the setting chosen under Additional controls.',
+ shot:'Generate and save a summary image of the current view and key parameters as a JPEG or PDF, or copy it to the clipboard as an image.'
 };
 const tipEl=document.getElementById('tip');
 function hideTip(){tipEl.hidden=true;tipFor=null;tipPinned=false;}
@@ -1007,8 +1048,8 @@ function wrapWith(el,id,what,inline){const w=document.createElement('div');w.cla
  const lab=(sel,id,what)=>{const l=document.querySelector(sel);if(l)addBubble(l,id,what);else console.warn('no label',sel);};
  lab('label[for="n_fl"]','fl','focal length');lab('label[for="r_ap"]','ap','aperture');lab('label[for="n_h"]','h','camera height');
  lab('label[for="n_cam"]','cam_c','camera tilt or rotation');lab('label[for="n_tilt"]','tilt_c','lens tilt');lab('label[for="n_focus"]','focus_c','focus distance');
- lab('label[for="n_shift"]','shift_c','lens shift');lab('label[for="n_view"]','view_c','scene size');lab('label[for="n_dmin"]','dmin','closest focus distance');
- lab('label[for="n_sensor"]','sensor','sensor format');lab('label[for="n_cocmode"]','coc','circle of confusion');lab('label.fovrow','fovchk','the field of view check box');
+ lab('label[for="n_shift"]','shift_c','lens shift');lab('label[for="n_view"]','view_c','scene size');
+ lab('label[for="n_sensor"]','sensor','sensor format');lab('label[for="n_cocmode"]','coc','circle of confusion');lab('label.fovrow','fovchk','the field of view check box');lab('label[for="n_curv"]','curv','field curvature');
  wrapWith(document.querySelector('.viewsw:not(.unitsw)'),'view','the view switch');wrapWith(document.querySelector('.unitsw'),'units','the units switch');
  wrapWith(document.getElementById('auto-btn'),'auto','Auto Tilt/Focus',true);wrapWith(document.getElementById('hyper-btn'),'hyperbtn','focus at hyperfocal distance',true);
  wrapWith(document.getElementById('reset'),'reset','Reset to Default',true);wrapWith(document.getElementById('shot-btn'),'shot','Screenshot',true);
