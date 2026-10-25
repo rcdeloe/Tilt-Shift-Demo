@@ -83,6 +83,8 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 .objs th[scope=colgroup]{padding-bottom:0;border-bottom:1px solid var(--line)}
 .objs input{width:18px;height:18px;accent-color:var(--accent);vertical-align:middle;cursor:pointer}
 .objs label{cursor:pointer}
+.objbtn{margin:0!important;font-size:13px!important;padding:5px 10px!important}
+#objs-side,#objs-body{display:flex;flex-wrap:wrap;gap:8px}
 .objrow{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px}
 .dast{font-weight:600;margin-left:1px}
 .legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin:8px 0 0}
@@ -95,7 +97,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v231</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v235</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus<b class="dast"></b></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness<b class="dast"></b></span><span id="dleg" style="display:none"><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><g fill="var(--accent)"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="15" cy="2" r="1.2"/><circle cx="21" cy="2" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="24" cy="6" r="1.2"/></g><line x1="0" y1="10.5" x2="26" y2="10.5" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/></svg>Sharp only if diffraction is ignored</span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
@@ -474,10 +476,11 @@ const sideFree=(so,x)=>!SIDE.some(q=>q!==so&&Math.abs(q.x-x)<sideSep(q.t,so.t)-1
 function sideSnap(so,t,lo,hi){ // the free spot nearest to t: t itself, or just beyond the edge of an object in the way
  t=Math.max(lo,Math.min(hi,t));const c=[t];SIDE.forEach(q=>{if(q!==so){const g=sideSep(q.t,so.t);c.push(q.x-g,q.x+g);}});
  let best=null,bd=1e9;c.forEach(x=>{if(x<lo||x>hi||!sideFree(so,x))return;const d=Math.abs(x-t);if(d<bd){bd=d;best=x;}});return best;}
-const OBJS=[{id:'wall',name:'Wall'},{id:'trees',name:'Group of small trees'},{id:'bigtree',name:'Large tree'},{id:'building',name:'Building'}];
+const OBJS=[{id:'wall',name:'Wall'},{id:'shrub',name:'Shrub'},{id:'bigtree',name:'Large tree'},{id:'building',name:'Building'}];
 let TOP=[],objH=[]; // the placed elements in the top view: each one can be dragged on its own
 const WALL_L=15; // the wall is 15 m long and 0.5 m thick
-const TOP_DEF={trees:()=>[[14.75,-4.82],[13.21,-7.69],[14.52,-9.8],[11.1,-9.23],[10.07,-6.76]].map(([x,y],q)=>({k:'tree',g:'trees',x,y,ph:q*1.7})),
+const SHR_R=1.0; // the shrub seen from above is 2 m across, wider than a small tree's canopy (about 1.5 m)
+const TOP_DEF={shrub:()=>[{k:'tree',g:'shrub',sh:1,x:12.6,y:-7.7,ph:1.3,R:SHR_R}],
  wall:()=>[{k:'wall',g:'wall',a:[3.8,5.75],b:[18.8,5.75]}],
  bigtree:()=>[{k:'tree',g:'bigtree',x:view.x1-BIG_R-0.5,y:view.y1-56*(view.y1-view.y0)/view.W-BIG_R-0.4,ph:0.6,R:BIG_R}], // the large tree: the canopy is as wide as the side-view tree's (about 9.4 m); it starts in the upper left corner of the view, clear of the axis labels (56 pixels wide)
 
@@ -495,6 +498,7 @@ function polyCross(P,Q){ // do the outlines of two polygons properly cross, or o
   const s1=sd(c,a,b),s2=sd(d,a,b),s3=sd(a,c,d),s4=sd(b,c,d);if(s1*s2<0&&s3*s4<0&&Math.min(s1,s2)<-EPS&&Math.max(s1,s2)>EPS&&Math.min(s3,s4)<-EPS&&Math.max(s3,s4)>EPS)return true;}}
  return false; // the wall is longer and thinner than the building can contain, so crossing outlines is the only way they can overlap
 }
+const COARSE=matchMedia('(pointer:coarse)').matches; // a touch screen: bigger, better separated remove buttons
 let CAM=null; // the camera as seen from above, as a circle {c:[x,y],R}: objects may not be dragged or placed on it (set each time the top view is drawn)
 function hitsCam(e){ // does a placed element overlap the camera?
  if(!CAM||!topView)return false;const c=CAM.c,R=CAM.R;
@@ -502,9 +506,16 @@ function hitsCam(e){ // does a placed element overlap the camera?
  if(e.k==='wall'){const P=wallP(e);return inPoly(c,P)||P.some((q,i)=>segD(c,q,P[(i+1)%4])<R-EPS);}
  const P=BLD(e);return inPoly(c,P)||P.some((q,i)=>segD(c,q,P[(i+1)%P.length])<R-EPS);
 }
+const rectsOf=e=>e.k==='wall'?[wallP(e)]:[[[-2.5,-2.5],[2.5,-2.5],[2.5,12.5],[-2.5,12.5]],[[-12.5,-2.5],[-2.5,-2.5],[-2.5,2.5],[-12.5,2.5]]].map(R=>R.map(q=>LT(e,q[0],q[1]))); // a wall is one rectangle; the L-shaped building is two
+function satOverlap(P,Q){ // do two convex polygons overlap by more than a touch? (separating-axis test)
+ for(const R of[P,Q])for(let i=0;i<R.length;i++){const a=R[i],b=R[(i+1)%R.length],nx=b[1]-a[1],ny=a[0]-b[0],L=Math.hypot(nx,ny)||1;
+  let p0=1e18,p1=-1e18,q0=1e18,q1=-1e18;for(const v of P){const t=(v[0]*nx+v[1]*ny)/L;p0=Math.min(p0,t);p1=Math.max(p1,t);}for(const v of Q){const t=(v[0]*nx+v[1]*ny)/L;q0=Math.min(q0,t);q1=Math.max(q1,t);}
+  if(p1<=q0+EPS||q1<=p0+EPS)return false;}
+ return true;
+}
 function clash(a,b){ // do two placed elements overlap? Touching is allowed
  if(a.k>b.k)[a,b]=[b,a]; // alphabetical: building, tree, wall
- if(a.k===b.k)return a.k==='tree'&&Math.hypot(a.x-b.x,a.y-b.y)<rad(a)+rad(b)-EPS;
+ if(a.k===b.k){if(a.k==='tree')return Math.hypot(a.x-b.x,a.y-b.y)<rad(a)+rad(b)-EPS;return rectsOf(a).some(P=>rectsOf(b).some(Q=>satOverlap(P,Q)));} // two walls, or two buildings
  if(a.k==='building'&&b.k==='tree'){const P=BLD(a),c=[b.x,b.y];return inPoly(c,P)||P.some((q,i)=>segD(c,q,P[(i+1)%P.length])<rad(b)-EPS);}
  if(a.k==='tree'){const P=wallP(b);return inPoly([a.x,a.y],P)||P.some((q,i)=>segD([a.x,a.y],q,P[(i+1)%4])<rad(a)-EPS);}
  return polyCross(BLD(a),wallP(b));
@@ -528,22 +539,25 @@ function layered(m,alpha,fn){ // draw something opaque on a scratch layer, then 
  const g=LAYER.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.setTransform(m.getTransform());g.globalAlpha=1;g.lineWidth=1;g.lineCap='butt';g.setLineDash([]);
  fn(g);m.save();m.setTransform(1,0,0,1,0,0);m.globalAlpha=alpha;m.drawImage(LAYER,0,0);m.restore();}
 function placeGroup(g){ // put the group down where it clashes with nothing already there, as near its usual spot as possible
- const def=TOP_DEF[g](),mv=(dx,dy)=>def.map(o=>o.k==='wall'?{...o,a:[o.a[0]+dx,o.a[1]+dy],b:[o.b[0]+dx,o.b[1]+dy]}:{...o,x:o.x+dx,y:o.y+dy});
- const offs=[[0,0]];for(let r=1;r<=30;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)if(Math.max(Math.abs(dx),Math.abs(dy))===r)offs.push([dx,dy]);
- for(const[dx,dy]of offs){const c=mv(dx,dy);if(c.every(inScene)&&!c.some(e=>hitsCam(e)||TOP.some(q=>clash(q,e)))){TOP.push(...c);return;}}
- TOP.push(...def);
+ const nn=1+Math.max(0,...TOP.filter(o=>o.g===g).map(o=>o.n||0)),def=TOP_DEF[g]().map(o=>({...o,n:nn})),mv=(dx,dy)=>def.map(o=>o.k==='wall'?{...o,a:[o.a[0]+dx,o.a[1]+dy],b:[o.b[0]+dx,o.b[1]+dy]}:{...o,x:o.x+dx,y:o.y+dy});
+ const offs=[[0,0]];for(let k=1;k<=160;k++)offs.push([0,-(g==='wall'?2:0.5)*k]); // a further copy is moved to the right of the others (the right-hand side is negative y)
+ for(let r=1;r<=30;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)if(Math.max(Math.abs(dx),Math.abs(dy))===r)offs.push([dx,dy]);
+ for(const[dx,dy]of offs){const c=mv(dx,dy);if(c.every(inScene)&&!c.some(e=>hitsCam(e)||TOP.some(q=>clash(q,e)))){TOP.push(...c);return true;}}
+ return false;
 }
-document.getElementById('objs-body').innerHTML=OBJS.map(o=>`<label class="objrow"><input type="checkbox" data-o="${o.id}"> ${o.name}</label>`).join('');
+const addName=n=>'Add '+n.charAt(0).toLowerCase()+n.slice(1);
+document.getElementById('objs-body').innerHTML=OBJS.map(o=>`<button type="button" class="btn objbtn" data-o="${o.id}">${addName(o.name)}</button>`).join('');
 function buildSObjs(){ // one check box per object: it places the object at its starting distance
- document.getElementById('objs-side').innerHTML=SOBJS.map(o=>`<label class="objrow"><input type="checkbox" data-so="${o.id}"> ${o.name}</label>`).join('');
+ document.getElementById('objs-side').innerHTML=SOBJS.map(o=>`<button type="button" class="btn objbtn" data-so="${o.id}">${addName(o.name)}</button>`).join('');
 }
-function syncObjs(){document.querySelectorAll('#objs-body input').forEach(c=>{c.checked=TOP.some(o=>o.g===c.dataset.o);});document.querySelectorAll('#objs-side input').forEach(c=>{c.checked=SIDE.some(o=>o.t===c.dataset.so);});}
+function syncObjs(){} // the Add buttons carry no state; kept so that the callers need not change
+function noRoom(b){const t=b.textContent;b.textContent='No room';clearTimeout(b.t);b.t=setTimeout(()=>{b.textContent=t;},1500);}
 buildSObjs();
-document.getElementById('objs-side').addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.so){
- SIDE=SIDE.filter(o=>o.t!==t.dataset.so); // one of each object: un-checking removes it
- if(t.checked){const d=startDist(SOBJS.find(o=>o.id===t.dataset.so)),so={t:t.dataset.so,x:d},x=sideSnap(so,d,0.5,500);if(x!==null){so.x=x;SIDE.push(so);}} // placed at its starting distance, or at the nearest free spot if an object is in the way
- syncObjs();draw();}});
-document.getElementById('objs-body').addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.o){TOP=TOP.filter(o=>o.g!==t.dataset.o);if(t.checked)placeGroup(t.dataset.o);syncObjs();draw();}});
+document.getElementById('objs-side').addEventListener('click',e=>{const b=e.target.closest('button[data-so]');if(!b)return;
+ // every press adds another: the first at its starting distance, the next ones bumped to the right, to the nearest free spot beyond
+ const d=startDist(SOBJS.find(o=>o.id===b.dataset.so)),so={t:b.dataset.so,x:d},x=sideSnap(so,d,d,Math.max(view?view.x1:100,d));
+ if(x===null){noRoom(b);return;}so.x=x;SIDE.push(so);draw();});
+document.getElementById('objs-body').addEventListener('click',e=>{const b=e.target.closest('button[data-o]');if(!b)return;const n=TOP.length;placeGroup(b.dataset.o);if(TOP.length===n)noRoom(b);draw();});
 const hyperM=()=>{const d=diffr?2.44*0.00055*V.ap:0,c=d<V.coc?Math.sqrt(V.coc*V.coc-d*d):V.coc;return (V.fl*V.fl/(V.ap*c)+V.fl)/1000;}; // once the Airy disc exceeds the circle of confusion the plain value is used // hyperfocal distance in metres: focusing here keeps everything from half this distance to infinity acceptably sharp
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const rgb=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16));};
@@ -744,6 +758,8 @@ function draw(){
  {const kx=W/(x1-x0),ol='rgba(20,30,20,0.55)';
   const blob=(pts)=>{sx.beginPath();const n=pts.length,mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];let m=mid(pts[n-1],pts[0]);sx.moveTo(PX(m[0]),PY(m[1]));
    for(let i=0;i<n;i++){const c=pts[i],q=mid(c,pts[(i+1)%n]);sx.quadraticCurveTo(PX(c[0]),PY(c[1]),PX(q[0]),PY(q[1]));}sx.closePath();};
+  const blobOn=(c,pts)=>{c.beginPath();const n=pts.length,mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];let m=mid(pts[n-1],pts[0]);c.moveTo(PX(m[0]),PY(m[1]));
+   for(let i=0;i<n;i++){const q=pts[i],e=mid(q,pts[(i+1)%n]);c.quadraticCurveTo(PX(q[0]),PY(q[1]),PX(e[0]),PY(e[1]));}c.closePath();}; // the same smooth outline, drawn on a given canvas layer
   const circ=(cx,cy,r)=>{sx.beginPath();sx.arc(PX(cx),PY(cy),r*kx,0,7);};
   sx.lineWidth=1;sx.strokeStyle=ol;
   const sideObj=so=>{const o=SOBJS.find(q=>q.id===so.t),d=so.x;
@@ -810,12 +826,20 @@ function draw(){
   const ring=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<28;q++){const a=q/28*Math.PI*2,m=1+0.10*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
   // x is distance in front of the camera and y is distance to the left of it, both in metres; objects are only drawn from above
   if(topView)clampObjs(x0,x1,y0,y1);
-  if(topView&&TOP.some(o=>o.k==='wall')){const wl=TOP.find(o=>o.k==='wall'),wa=wl.a,wb=wl.b,ux=(wb[0]-wa[0])/WALL_L,uy=(wb[1]-wa[1])/WALL_L,nx=-uy*0.25,ny=ux*0.25;
+  if(topView)for(const wl of TOP.filter(o=>o.k==='wall')){const wa=wl.a,wb=wl.b,ux=(wb[0]-wa[0])/WALL_L,uy=(wb[1]-wa[1])/WALL_L,nx=-uy*0.25,ny=ux*0.25;
    const Q=(t,sg)=>[wa[0]+ux*t+sg*nx,wa[1]+uy*t+sg*ny];
    sx.globalAlpha=0.9;sx.fillStyle='#a39b8c';poly([Q(0,1),Q(WALL_L,1),Q(WALL_L,-1),Q(0,-1)]);sx.fill();sx.stroke();
    sx.globalAlpha=0.35;sx.strokeStyle='#5f5848';sx.beginPath();for(let t=0.5;t<WALL_L;t+=0.5){const q=Q(t,1),r=Q(t,-1);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();sx.strokeStyle=ol;sx.globalAlpha=1;}
   if(topView&&TOP.some(o=>o.k==='tree')){
    for(const o of TOP){if(o.k!=='tree')continue;const cx=o.x,cy=o.y,ph=o.ph,BR=o.R||0,gs=BR?BR/0.77:1; // BR: canopy radius of the large tree; gs scales the small tree's shading to it
+    if(o.sh){ // a shrub from above: a dense, rounded mass of foliage with a slightly wavy edge, lit from the upper left, as in the side view
+     layered(sx,0.9,sx=>{sx.lineWidth=1;sx.strokeStyle=ol;
+      const rg=(ox,oy,rx,ph)=>{const pts=[];for(let q=0;q<26;q++){const a=q/26*Math.PI*2,m=1+0.09*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([cx+ox+rx*m*Math.cos(a),cy+oy+rx*m*Math.sin(a)]);}return pts;};
+      sx.fillStyle='rgba(0,0,0,0.20)';blobOn(sx,rg(-0.3,-0.3,0.97*BR,ph));sx.fill();
+      sx.fillStyle='#5b8f3a';blobOn(sx,rg(0,0,BR,ph));sx.fill();sx.stroke();
+      sx.globalAlpha=0.30;sx.fillStyle='#16361a';blobOn(sx,rg(-0.28*BR,-0.28*BR,0.6*BR,ph+1));sx.fill();
+      sx.globalAlpha=0.35;sx.fillStyle='#b9e07a';blobOn(sx,rg(0.3*BR,0.3*BR,0.3*BR,ph+2));sx.fill();blobOn(sx,rg(0.05*BR,0.5*BR,0.25*BR,ph+3));sx.fill();blobOn(sx,rg(0.5*BR,0.05*BR,0.22*BR,ph+4));sx.fill();});
+     continue;}
     layered(sx,0.9,sx=>{ // a tree from above: a canopy of rounded lobes round a centre, with soft light from the upper left
      sx.lineWidth=1;sx.strokeStyle=ol;
      sx.fillStyle='rgba(0,0,0,0.20)';sx.beginPath();sx.arc(PX(cx-(BR?0.35:0.16)),PY(cy-(BR?0.35:0.16)),(BR?0.97*BR:0.8)*kx,0,7);sx.fill();                // shadow
@@ -830,7 +854,7 @@ function draw(){
      LB.forEach(([u,v,r])=>soft(cx+u+0.25*r,cy+v+0.25*r,r*0.7,'rgba(210,240,143,0.38)'));
      sx.restore();});}
   }
-  if(topView&&TOP.some(o=>o.k==='building')){const bo=TOP.find(o=>o.k==='building'),P=BLD(bo),L=(a,b)=>LT(bo,a,b);
+  if(topView)for(const bo of TOP.filter(o=>o.k==='building')){const P=BLD(bo),L=(a,b)=>LT(bo,a,b);
    const loc=(pts)=>pts.map(q=>L(q[0],q[1])),rect=(cx,cy,w,h)=>loc([[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]]);
    sx.globalAlpha=0.22;sx.fillStyle='#000';poly(P.map(q=>[q[0]-0.5,q[1]-0.5]));sx.fill();                          // shadow, thrown down and to the right
    sx.globalAlpha=1;sx.fillStyle='#c4bfb3';poly(P);sx.fill();sx.stroke();                                          // the parapet rim
@@ -856,8 +880,14 @@ function draw(){
    if(o.k==='wall'){grip('o'+i+'a',o.a[0],o.a[1],4.5);grip('o'+i+'b',o.b[0],o.b[1],4.5);grip('o'+i+'m',(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2,8,arrows);}
    else if(o.k==='building'){grip('o'+i,o.x,o.y,8,arrows);const t=LT(o,-12.5,0);grip('o'+i+'r',t[0],t[1],8,turn);}
    else grip('o'+i,o.x,o.y,4.5);});
+  // a small X on every placed object (on the first element of a group) removes it
+  const XR=COARSE?12:7,xbtn=(X,Y,rm)=>{objH.push({id:'x'+objH.length,px:X,py:Y,rm});
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(150,35,35,0.92)';sx.beginPath();sx.arc(X,Y,XR,0,7);sx.fill();sx.stroke();
+    const e=XR*0.4;sx.lineWidth=COARSE?2.4:1.8;sx.beginPath();sx.moveTo(X-e,Y-e);sx.lineTo(X+e,Y+e);sx.moveTo(X+e,Y-e);sx.lineTo(X-e,Y+e);sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}};
+  if(topView){const seen=new Set();TOP.forEach(o=>{const key=o.g+'#'+(o.n||0);if(seen.has(key))return;seen.add(key);const q=o.k==='wall'?o.a:[o.x,o.y],st=((seen.size-1)%2)*(2*XR+4);xbtn(PX(q[0])+(COARSE?32:18),PY(q[1])-(COARSE?32:18)-st,()=>{TOP=TOP.filter(t=>!(t.g===o.g&&(t.n||0)===(o.n||0)));});});}
   if(!topView)SIDE.forEach((o,i)=>{objH.push({id:'s'+i,px:PX(o.x),py:PY(Gy(o.x))-12});
-   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(Gy(o.x))-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}});
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(Gy(o.x))-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}
+   xbtn(PX(o.x),PY(Gy(o.x))+(COARSE?44:38)+(i%2)*(COARSE?28:22),()=>{const k=SIDE.indexOf(o);if(k>=0)SIDE.splice(k,1);});});
  }
  // axis ticks
  const gy=topView?H-28:PY(0); // the distance axis sits on the ground line in the side view and along the bottom edge from above
@@ -1026,8 +1056,8 @@ function draw(){
   const Aw=info.A,dp=[info.dx,info.dy];
   let ang=Math.atan2(dp[1],dp[0])*180/Math.PI;if(ang>90)ang-=180;if(ang<=-90)ang+=180;
   row('Plane of focus angle',Math.abs(ang)<0.005?'horizontal':Math.abs(Math.abs(ang)-90)<0.005?'vertical':Math.abs(ang).toFixed(2)+'° '+(ang<0?'descending away':'rising away'));
-  if(GMODE){const gg=groundHit();row('Plane meets ground',gg===null?'does not meet the ground':fmt(gg));}
-  else if(Math.abs(dp[1])>1e-9){const t=-Aw[1]/dp[1],gx=Aw[0]+t*dp[0];row('Plane meets ground',gx>0?fmt(gx):'behind camera ('+Lm(gx)+')');}else row('Plane meets ground','never (parallel)');
+  if(GMODE){const gg=groundHit();row('Plane first meets ground',gg===null?'does not meet the ground':fmt(gg));}
+  else if(Math.abs(dp[1])>1e-9){const t=-Aw[1]/dp[1],gx=Aw[0]+t*dp[0];row('Plane first meets ground',gx>0?fmt(gx):'behind camera ('+Lm(gx)+')');}else row('Plane first meets ground','never (parallel)');
   const fl2=(x1-x0)*40,inf=(p,d,col,w,dash)=>{sx.strokeStyle=col;sx.lineWidth=w;sx.setLineDash(dash||[2,10]);sx.beginPath();sx.moveTo(PX(p[0]-d[0]*fl2),PY(p[1]-d[1]*fl2));sx.lineTo(PX(p[0]+d[0]*fl2),PY(p[1]+d[1]*fl2));sx.stroke();sx.setLineDash([]);};
   const dl=cw(M.ct,-M.st).map((v,i)=>v-[0,M.h][i]),up=[M.sp,M.cp];
   inf([0,M.h],dl,muted,1.5); // lens plane extended
@@ -1088,14 +1118,14 @@ function draw(){
  row('Field curvature',['None','Mild','Strong'][curvLvl]);
  if(diffr)row('Diffraction','*'+(M.dl?'Airy disc '+(M.airy*1000).toFixed(1)+' µm is larger than the circle of confusion':'Airy disc '+(M.airy*1000).toFixed(1)+' µm; reaches the circle of confusion at f/'+(M.c/(2.44*0.00055*M.nEff/V.ap)).toFixed(1)));
  row('Plane crosses lens axis',M.Zc<0?'behind lens (past infinity)':isFinite(M.Zc)?fmtD(M.Zc/1000):'∞');
- document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus','Field curvature','Diffraction']:['Plane meets ground','Vertical field of view','Frame height at focus','Field curvature','Diffraction']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
+ document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus','Field curvature','Diffraction']:['Plane first meets ground','Vertical field of view','Frame height at focus','Field curvature','Diffraction']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
  placeSceneTips();
 }
 // dragging the handles
 const toCanvas=e=>{const r=sc.getBoundingClientRect(),rx=(e.clientX-r.left)*view.W/r.width,ry=(e.clientY-r.top)*view.H/r.height;return view.top?[view.H-ry,rx]:[rx,ry];}; // in the top view, back into the unturned layout
 const toWorld=p=>[view.x0+p[0]/view.vw*(view.x1-view.x0),view.y1-p[1]/view.vh*(view.y1-view.y0)];
 // tol is in on-screen pixels: generous for a finger, tighter for a mouse
-function pick(p,tol){let best=null,bd=tol;for(const h of handles){const d=Math.hypot(h.px-p[0],h.py-p[1])+(h.id[0]==='o'?8:0);if(d<bd){bd=d;best=h;}}return best;}
+function pick(p,tol){let best=null,bd=tol;for(const h of handles){const d=Math.hypot(h.px-p[0],h.py-p[1])+(h.id[0]==='o'?8:0)+(COARSE&&!h.rm?5:0)-(h.rm?4:0); /* on a touch screen the remove buttons win a close call */if(d<bd){bd=d;best=h;}}return best;}
 function applyDrag(w){
  if(drag==='focus'){
   // find the focus setting whose plane passes closest to the pointer (tilt unchanged), then remember the pointer as the dot's anchor
@@ -1151,9 +1181,11 @@ function applyDrag(w){
 }
 const HIT_TOUCH=32,HIT_MOUSE=16;
 const tolFor=e=>e.pointerType==='touch'||e.pointerType==='pen'?HIT_TOUCH:HIT_MOUSE;
-sc.addEventListener('pointerdown',e=>{const pc=toCanvas(e),h=pick(pc,tolFor(e));if(!h)return;drag=h.id;{const a=toWorld(pc),b=toWorld([h.px,h.py]);grabOff=[b[0]-a[0],b[1]-a[1]];} // keep the dot under the finger or pointer where it was grabbed
+sc.addEventListener('pointerdown',e=>{const pc=toCanvas(e),h=pick(pc,tolFor(e));if(!h)return;
+ if(h.rm){e.preventDefault();h.rm();draw();return;} // the X on an object removes it
+ drag=h.id;{const a=toWorld(pc),b=toWorld([h.px,h.py]);grabOff=[b[0]-a[0],b[1]-a[1]];} // keep the dot under the finger or pointer where it was grabbed
 try{sc.setPointerCapture(e.pointerId);}catch(_){}sc.style.cursor='grabbing';e.preventDefault();});
-sc.addEventListener('pointermove',e=>{const p=toCanvas(e);if(!drag){sc.style.cursor=pick(p,tolFor(e))?'grab':'default';return;}e.preventDefault();applyDrag(toWorld(p));draw();});
+sc.addEventListener('pointermove',e=>{const p=toCanvas(e);if(!drag){const hh=pick(p,tolFor(e));sc.style.cursor=hh?(hh.rm?'pointer':'grab'):'default';return;}e.preventDefault();applyDrag(toWorld(p));draw();});
 // on touch screens, stop the page from scrolling when a finger lands on a handle, so the drag moves the handle instead
 sc.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0],r=sc.getBoundingClientRect();
  if(pick(toCanvas(t),HIT_TOUCH))e.preventDefault();},{passive:false});
@@ -1206,7 +1238,7 @@ const TIPS={
  fov:'Field of view is determined by the chosen focal length and sensor. The teal shading for the acceptably sharp area extends beyond it, to the edge of the lens\'s image circle (the lens forms an image beyond the sensor, and lens shift moves the sensor within it). The shading can be limited to the field of view using a check box under Additional controls.',
  ground:'Choose flat, level ground, or ground that is uneven and slopes down or up. Uneven ground is level for the first metre from the lens and then has an overall slope of roughly 6%, with local slopes that vary and sometimes run against the trend for a few metres. The surface is the same every time. "Ground in acceptably sharp focus" is the part of the surface that lies within the limits of acceptable sharpness, and only where the lens can see it: ground hidden behind a rise is not counted. Distances are measured straight along the level from the camera, not along the slope. Auto Tilt/Focus and the point where the plane of focus meets the ground follow the surface too.',
  hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is 0 degrees. Use the button to focus automatically at the hyperfocal distance.',
- objs:()=>T()?'Use the check marks to place background objects in the view. You can use all three at once. Once placed, drag the dark dot on any object to move it. Each tree moves on its own. The wall is 15 m (about 49 ft) long: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. Objects can touch but cannot overlap.':'Use the check boxes to add objects of different sizes and heights to the view. Each is placed at a standard distance from the camera (the low plant, boulder, shrub, tree and wall start at '+(imperial?'6, 15, 30, 50 and 75 ft':'2, 5, 10, 15 and 23 m')+'), or at the nearest free spot if another object is in the way. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it. A check box stays ticked while its object is in the scene, wherever you slide it. Un-check it to remove the object.',
+ objs:()=>T()?'Use the Add buttons to place background objects in the view. Pressing a button again adds another of the same kind, placed to the right of the ones already there. Once placed, drag the dark dot on any object to move it. Each tree and shrub moves on its own. The wall is 15 m (about 49 ft) long: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. To remove an object, click or touch the small red X beside it. Objects can touch but cannot overlap.':'Use the Add buttons to add objects of different sizes and heights to the view. The first of each kind is placed at a standard distance from the camera (the low plant, boulder, shrub, tree and wall start at '+(imperial?'6, 15, 30, 50 and 75 ft':'2, 5, 10, 15 and 23 m')+'); pressing a button again adds another, bumped to the right to the nearest free spot. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. To remove an object, click or touch the small red X beside it. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it.',
  auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view.',
  hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees.',
  view:'Choose between a side profile (Tilt Up/Down) or a top-down view (Tilt Left/Right). Diagonal tilt is not available. Changing the view also resets all settings and background objects to their defaults.',
@@ -1232,7 +1264,7 @@ const TIPS={
  hinge:'The hinge line is the line the plane of focus pivots around as the focus distance changes. It lies at the focal length divided by the sine of the tilt angle from the lens, in the plane through the lens parallel to the sensor, so more tilt brings it closer. The green dot marks the hinge and the dashed green line joins it to the lens. It is not shown when tilt is 0. The hinge belongs to the flat-field plane, so with field curvature on it describes the faint straight reference lines.',
  lplane:'The dotted line through the lens is the lens plane, the plane of the lens itself. It stays square to the lens axis and swings with the lens when tilt is applied. The plane of focus meets it along the same line where it meets the extended sensor plane (the Scheimpflug rule).',
  laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens. The focus distance is measured to the point where the plane of focus crosses this line.',
- readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.':'Plane meets ground: where the plane of focus reaches the ground. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.',
+ readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.':'Plane first meets ground: the nearest place to the camera where the plane of focus meets the ground surface. On uneven ground the plane can meet the surface in more than one place. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.',
  link:'Makes a web address (a link) that holds every setting you have now: the view, units, lens, ground surface, all the controls and the background objects. Open it in a new browser window or send it to someone to get the same setup. The link is copied to the clipboard, ready to paste. It opens the shared version of the tool at rcdeloe.github.io/Tilt-Shift-Demo. Nothing is stored on a server: the whole setup is in the link.',
  shot:'Generate and save a summary image of the current view and key parameters as a JPEG or PDF, or copy it to the clipboard as an image.'
 };
