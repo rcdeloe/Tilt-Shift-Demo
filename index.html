@@ -124,6 +124,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
     <button type="button" id="vw-top" role="switch" aria-checked="false">Tilt Left/Right</button>
    </div>
    <div class="row" id="lens-row"><label for="n_lens">Choose example lens</label><select id="n_lens" style="grid-column:1/3"></select></div>
+   <p class="note" id="lens-note" style="display:none;margin:-6px 0 14px">With a lens chosen, tilt moves in 0.5° steps and shift in 1 mm steps, and distances and angles are rounded. Real lenses are set on coarse scales, and their true focal length and angle of view vary by a few percent.</p>
    <div id="main-controls"></div>
    <div class="shotrow"><button type="button" id="reset" class="btn">Reset to Default</button><button type="button" id="shot-btn" class="btn" aria-haspopup="true" aria-expanded="false">Screenshot</button>
    <span id="shot-menu" class="shotmenu" hidden role="group" aria-label="Screenshot format"><button type="button" class="btn" data-f="jpg">JPEG</button><button type="button" class="btn" data-f="pdf">PDF</button><button type="button" class="btn" data-f="clip" id="clip-btn">Copy to clipboard</button></span></div>
@@ -236,8 +237,9 @@ function build(id,list){
   d.innerHTML=`<label for="n_${k}">${l}</label><input type="number" id="n_${k}" min="${mn}" max="${mx}" step="${st}" value="${val}"><input type="range" id="r_${k}" aria-label="${l}" min="${mn}" max="${mx}" step="${st}" value="${val}">`;
   box.appendChild(d);
   const n=d.querySelector('[type=number]'),r=d.querySelector('[type=range]');
-  const on=(src,other)=>()=>{const x=parseFloat(src.value);if(isNaN(x))return;other.value=x;const cf=imperial&&UN[k]?UN[k].f:1;const hi=k==='shift'?SHIFTMAX:k==='tilt'?TILTMAX:mx,lo=k==='shift'?-SHIFTMAX:k==='tilt'?-TILTMAX:mn;V[k]=Math.min(hi,Math.max(lo,x/cf));if((k==='shift'||k==='tilt')&&V[k]!==x){n.value=V[k];r.value=V[k];}draw();};
+  const on=(src,other)=>()=>{const x=parseFloat(src.value);if(isNaN(x))return;other.value=x;const cf=imperial&&UN[k]?UN[k].f:1;const hi=k==='shift'?SHIFTMAX:k==='tilt'?TILTMAX:mx,lo=k==='shift'?-SHIFTMAX:k==='tilt'?-TILTMAX:mn;V[k]=Math.min(hi,Math.max(lo,x/cf));const clp=V[k]!==x;if(LENS&&(k==='shift'||k==='tilt')){const q=k==='tilt'?0.5:1;V[k]=Math.round(V[k]/q)*q;}if((k==='shift'||k==='tilt')&&(clp||src===r)){n.value=V[k];r.value=V[k];}draw();};
   n.addEventListener('input',on(n,r));r.addEventListener('input',on(r,n));
+  if(k==='shift'||k==='tilt')n.addEventListener('change',()=>{n.value=V[k];r.value=V[k];}); // a typed value settles on the nearest allowed step
  });
 }
 build('main-controls',MAIN);build('adv-controls',EXTRA.concat(ADV));
@@ -254,7 +256,9 @@ const pastInf=p=>Math.max(0,p-100)*0.001*V.fl; // mm short of the infinity posit
 let DMIN=0.3; // closest focus distance in metres: the near end of the focus slider. Tilt-shift lenses focus as close as about 0.25 m (17 mm) to 0.5 m (90 mm), so 0.3 m serves them all
 const pctToDist=p=>p>100?-V.fl/(p-100):p>=100?Infinity:DMIN*Math.pow(FAR/DMIN,p/100);
 const distToPct=u=>(!isFinite(u)||u>=FAR)?100:Math.min(100,Math.max(0,100*Math.log(Math.max(u,DMIN)/DMIN)/Math.log(FAR/DMIN)));
-const fmtD=x=>{const v=dv(x);return(v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v))+uL();};
+const dsp=v=>LENS?(v<1?v.toFixed(2):v<10?v.toFixed(1):Math.round(v)):(v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v)); // with a lens, distances are given to about two figures
+const fmtD=x=>{const v=dv(x);return dsp(v)+uL();};
+const snapTilt=t=>LENS?Math.round(t/0.5)*0.5:t,tiltTxt=t=>(+t).toFixed(LENS?1:2);
 function syncFocus(fromSlider){
  const u=pctToDist(V.focus);
  if(!fromSlider)document.getElementById('r_focus').value=V.focus;
@@ -301,12 +305,13 @@ function autoScore(nx,ny,N){
 function autoTiltFocus(){
  // every other setting, including scene width, stays as it is
  let best={s:-1,tl:0,p:0};
- const tls=[];for(let t=0;t<=TILTMAX+0.0001;t+=(t<5?0.1:0.5))tls.push(+t.toFixed(2)); // positive tilt only
+ const tls=[];for(let t=0;t<=TILTMAX+0.0001;t+=(LENS||t>=5?0.5:0.1))tls.push(+t.toFixed(2)); // positive tilt only
  for(const tl of tls)for(let p=0;p<=100;p+=2.5){V.tilt=tl;V.focus=p;const sc=autoScore(40,25,120);if(sc>best.s)best={s:sc,tl,p};}
  let b2={s:-1,tl:best.tl,p:best.p};
- for(let tl=best.tl-0.2;tl<=best.tl+0.2001;tl+=0.02)for(let p=Math.max(0,best.p-2.5);p<=Math.min(100,best.p+2.5);p+=0.25){
-  if(tl<0||tl>15)continue;V.tilt=tl;V.focus=p;const sc=autoScore(80,50,240);if(sc>b2.s)b2={s:sc,tl,p};}
- setVal('tilt',+b2.tl.toFixed(2));V.focus=b2.p;syncFocus();draw();
+ const tfine=[];if(LENS)tfine.push(best.tl);else for(let tl=best.tl-0.2;tl<=best.tl+0.2001;tl+=0.02)tfine.push(tl); // with a lens, tilt stays on its 0.5° steps
+ for(const tl of tfine)for(let p=Math.max(0,best.p-2.5);p<=Math.min(100,best.p+2.5);p+=0.25){
+  if(tl<0||tl>TILTMAX)continue;V.tilt=tl;V.focus=p;const sc=autoScore(80,50,240);if(sc>b2.s)b2={s:sc,tl,p};}
+ setVal('tilt',+snapTilt(b2.tl).toFixed(2));V.focus=b2.p;syncFocus();draw();
 }
 
 // a one-page PDF (Letter, portrait) holding the screenshot JPEG, scaled to fit inside half-inch margins
@@ -345,7 +350,7 @@ async function takeScreenshot(fmt){
  hideHandles=false;forceDpr=0;draw();
  const focusTxt=document.getElementById('n_focus').value,cm=document.getElementById('n_cocmode'),mode=cm.value;
  const items=[
-  [LENS?'Lens':'Focal length',LENS?LENS.name:V.fl+' mm'],['Aperture','f/'+V.ap],['Lens tilt'+(topView?' (left/right)':' (up/down)'),(+V.tilt).toFixed(2)+'°'],
+  [LENS?'Lens':'Focal length',LENS?LENS.name:V.fl+' mm'],['Aperture','f/'+V.ap],['Lens tilt'+(topView?' (left/right)':' (up/down)'),tiltTxt(V.tilt)+'°'],
   ['Focus distance',focusTxt.includes('∞')?focusTxt:focusTxt+uL()],['Camera height from ground',topView?'n/a (top view)':(imperial?(V.h/2.54).toFixed(1)+' in':V.h+' cm')],['Lens shift'+(topView?' (left/right)':' (up/down)'),V.shift+' mm'],
   [topView?'Pan camera (left/right)':'Camera pitch (up/down)',(+V.cam).toFixed(1)+'°'],['Image circle diameter',V.circ+' mm'],['Circle of confusion',mode==='custom'?'Custom ('+V.coc+' mm)':cm.options[cm.selectedIndex].text]];
   const results=[...document.querySelectorAll('#out > div')].map(d=>[d.querySelector('dt').textContent,d.querySelector('dd').innerHTML.replace(/<br\s*\/?>/g,'; ')]); // the results shown under the legend
@@ -419,8 +424,11 @@ function setLens(id){
  DMIN=L?L.dmin:0.3;TILTMAX=L?L.tilt:15;LENSSHIFT=L?L.shift:15;
  setApList(L?APS_THIRD.filter(a=>a>=L.ap[0]-1e-9&&a<=L.ap[1]+1e-9):APS_HALF);
  if(L)setVal('ap',L.ap[0]); // a newly chosen lens starts wide open
- for(const i of['n_tilt','r_tilt']){const e=document.getElementById(i);e.min=-TILTMAX;e.max=TILTMAX;}
+ for(const i of['n_tilt','r_tilt']){const e=document.getElementById(i);e.min=-TILTMAX;e.max=TILTMAX;e.step=L?0.5:0.05;}
+ for(const i of['n_shift','r_shift']){document.getElementById(i).step=L?1:0.5;}
  if(Math.abs(V.tilt)>TILTMAX)setVal('tilt',Math.sign(V.tilt)*TILTMAX);
+ if(L){setVal('tilt',snapTilt(+V.tilt));setVal('shift',Math.round(V.shift));}
+ document.getElementById('lens-note').style.display=L?'':'none';
  if(L){setVal('fl',L.fl);setVal('circ',L.circ);if(L.sensor!==undefined)applySensor(L.sensor);}
  lockRow('n_fl',!!L);lockRow('n_circ',!!L);lockRow('n_sensor',!!(L&&L.sensor!==undefined));
  if(u!==null)setFocusDist(Math.max(u,DMIN));else syncFocus();
@@ -539,7 +547,7 @@ const rgb=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16
 let M={};
 function updateShiftLimit(){ // the sensor must stay inside the image circle: its far corner is at (half the width across, half the height + shift along) the shift direction
  const R=V.circ/2,S=topView?V.sensW:V.sens,P=topView?V.sens:V.sensW;if(!(R>0&&S>0&&P>0))return;
- const m=Math.min(LENSSHIFT,Math.max(0,Math.floor((Math.sqrt(Math.max(0,R*R-P*P/4))-S/2)*2+1e-9)/2));
+ let m=Math.min(LENSSHIFT,Math.max(0,Math.floor((Math.sqrt(Math.max(0,R*R-P*P/4))-S/2)*2+1e-9)/2));if(LENS)m=Math.floor(m+1e-9); // with a lens, shift moves in whole millimetres
  if(m!==SHIFTMAX){SHIFTMAX=m;for(const id of['n_shift','r_shift']){const e=document.getElementById(id);if(e){e.min=-m;e.max=m;}}}
  if(Math.abs(V.shift)>SHIFTMAX){V.shift=Math.sign(V.shift)*SHIFTMAX;for(const id of['n_shift','r_shift']){const e=document.getElementById(id);if(e)e.value=V.shift;}}
 }
@@ -601,7 +609,7 @@ function groundHit(){
  if(Math.abs(dy)<1e-9*Math.abs(dx)+1e-12)return null;
  return A[0]+(-A[1]/dy)*dx;
 }
-const fmt=(x,d=2)=>x>=999?'∞':Lm(x,d);
+const fmt=(x,d=2)=>x>=999?'∞':LENS?fmtD(x):Lm(x,d);
 function nice(r){const p=Math.pow(10,Math.floor(Math.log10(r)));for(const m of[1,2,5,10])if(p*m>=r)return p*m;return p*10;}
 
 let forceDpr=0; // set while drawing the screenshot, so that it comes out at print resolution
@@ -955,14 +963,14 @@ function draw(){
     if(!hideHandles){sx.lineWidth=3;sx.strokeStyle=bg;sx.fillStyle=green;sx.beginPath();
     sx.moveTo(tp[0],tp[1]-12);sx.lineTo(tp[0]+12,tp[1]);sx.lineTo(tp[0],tp[1]+12);sx.lineTo(tp[0]-12,tp[1]);sx.closePath();sx.fill();sx.stroke();}
     handles.push({id:'tilt',px:tp[0],py:tp[1]});TA.push({id:'tilt',u:tp[0],v:tp[1],dx:22,dy:22});dot(tp,15);
-    if(!hideHandles)addLabel('Tilt '+V.tilt.toFixed(2)+'°',tp,['ar','al','br','bl','ac','bc'],{prio:2.5,color:green});
+    if(!hideHandles)addLabel('Tilt '+tiltTxt(V.tilt)+'°',tp,['ar','al','br','bl','ac','bc'],{prio:2.5,color:green});
    }
   }
  }
  // results
  const rows={}; // every figure is computed, but the Details pane shows only the three below
  const row=(a,b)=>{rows[a]=b;};
- row(topView?'Horizontal field of view':'Vertical field of view',((Math.atan((M.S/2+M.shift)/M.j)+Math.atan((M.S/2-M.shift)/M.j))*180/Math.PI).toFixed(1)+'°');
+ row(topView?'Horizontal field of view':'Vertical field of view',((Math.atan((M.S/2+M.shift)/M.j)+Math.atan((M.S/2-M.shift)/M.j))*180/Math.PI).toFixed(LENS?0:1)+'°');
  if(info.A){
   const Aw=info.A,dp=[info.dx,info.dy];
   let ang=Math.atan2(dp[1],dp[0])*180/Math.PI;if(ang>90)ang-=180;if(ang<=-90)ang+=180;
@@ -1082,7 +1090,7 @@ function applyDrag(w){
   if(isFinite(Xh)){
    const r=Math.max(-1,Math.min(1,M.f/(Xh||1e-9)));
    const tilt=Math.max(-TILTMAX,Math.min(TILTMAX,-Math.asin(r)*180/Math.PI));
-   setVal('tilt',+tilt.toFixed(3));
+   setVal('tilt',+snapTilt(tilt).toFixed(3));
   }
  }
 }
