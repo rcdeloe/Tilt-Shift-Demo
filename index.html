@@ -57,8 +57,8 @@ canvas{width:100%;display:block;border-radius:6px}
 .fovrow.off{color:var(--muted);cursor:default}
 .fovrow.off input{cursor:default}
 .fovrow input{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
-.shotrow{display:flex;gap:8px;align-items:center;margin:0 0 12px;flex-wrap:wrap}
-.shotrow .btn{margin:0}
+.shotrow{display:flex;gap:6px;align-items:center;margin:0 0 12px;flex-wrap:wrap}
+.shotrow .btn{margin:0;padding:6px 9px;font-size:13px}
 .addl .unitsw{margin:12px 0 18px}
 .shotmenu{display:inline-flex;gap:8px}
 .shotmenu[hidden]{display:none}
@@ -95,7 +95,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v229</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v231</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus<b class="dast"></b></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness<b class="dast"></b></span><span id="dleg" style="display:none"><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><g fill="var(--accent)"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="15" cy="2" r="1.2"/><circle cx="21" cy="2" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="24" cy="6" r="1.2"/></g><line x1="0" y1="10.5" x2="26" y2="10.5" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/></svg>Sharp only if diffraction is ignored</span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
@@ -127,6 +127,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
    <p class="note" id="lens-note" style="display:none;margin:-6px 0 14px">With a lens chosen, tilt moves in 0.25° steps and shift in 0.5 mm steps, and distances and angles are rounded. Real lenses are set on coarse scales, and their true focal length and angle of view vary by a few percent.</p>
    <div id="main-controls"></div>
    <div class="shotrow"><button type="button" id="reset" class="btn">Reset to Default</button><button type="button" id="shot-btn" class="btn" aria-haspopup="true" aria-expanded="false">Screenshot</button>
+   <button type="button" id="link-btn" class="btn">Save link</button>
    <span id="shot-menu" class="shotmenu" hidden role="group" aria-label="Screenshot format"><button type="button" class="btn" data-f="jpg">JPEG</button><button type="button" class="btn" data-f="pdf">PDF</button><button type="button" class="btn" data-f="clip" id="clip-btn">Copy to clipboard</button></span></div>
    <details class="addl"><summary>Additional controls</summary>
    <div id="adv-controls"></div>
@@ -1232,6 +1233,7 @@ const TIPS={
  lplane:'The dotted line through the lens is the lens plane, the plane of the lens itself. It stays square to the lens axis and swings with the lens when tilt is applied. The plane of focus meets it along the same line where it meets the extended sensor plane (the Scheimpflug rule).',
  laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens. The focus distance is measured to the point where the plane of focus crosses this line.',
  readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.':'Plane meets ground: where the plane of focus reaches the ground. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.',
+ link:'Makes a web address (a link) that holds every setting you have now: the view, units, lens, ground surface, all the controls and the background objects. Open it in a new browser window or send it to someone to get the same setup. The link is copied to the clipboard, ready to paste. It opens the shared version of the tool at rcdeloe.github.io/Tilt-Shift-Demo. Nothing is stored on a server: the whole setup is in the link.',
  shot:'Generate and save a summary image of the current view and key parameters as a JPEG or PDF, or copy it to the clipboard as an image.'
 };
 const tipEl=document.getElementById('tip');
@@ -1254,7 +1256,7 @@ function wrapWith(el,id,what,inline){const w=document.createElement('div');w.cla
  lab('label[for="n_lens"]','lens','lens limits');lab('label[for="n_ground"]','ground','ground surface');lab('label[for="n_sensor"]','sensor','sensor format');lab('label[for="n_circ"]','circ','image circle diameter');lab('label[for="n_cocmode"]','coc','circle of confusion');lab('label.fovrow','fovchk','the field of view check box');lab('#diff-row','diff','diffraction');lab('label[for="n_curv"]','curv','field curvature');
  wrapWith(document.querySelector('.viewsw:not(.unitsw)'),'view','the view switch');wrapWith(document.querySelector('.unitsw'),'units','the units switch');
  wrapWith(document.getElementById('auto-btn'),'auto','Auto Tilt/Focus',true);wrapWith(document.getElementById('hyper-btn'),'hyperbtn','focus at hyperfocal distance',true);
- wrapWith(document.getElementById('reset'),'reset','Reset to Default',true);wrapWith(document.getElementById('shot-btn'),'shot','Screenshot',true);
+ wrapWith(document.getElementById('reset'),'reset','Reset to Default',true);wrapWith(document.getElementById('shot-btn'),'shot','Screenshot',true);wrapWith(document.getElementById('link-btn'),'link','Save link',true);
  addBubble(document.querySelector('.panel.objs h2'),'objs','background objects');
  {const o=document.getElementById('out'),w=document.createElement('div');w.style.position='relative';o.parentNode.insertBefore(w,o);w.appendChild(o);const b=mkBubble('readout','the results');b.style.cssText='position:absolute;right:0;top:12px;margin:0';w.appendChild(b);}
  const ov=document.getElementById('sceneTips');
@@ -1297,6 +1299,43 @@ document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||tipPinne
 document.addEventListener('pointerout',e=>{if(e.pointerType!=='mouse'||tipPinned)return;const b=e.target.closest&&e.target.closest('.ib');if(b)hideTip();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip();});
 addEventListener('scroll',hideTip,{passive:true});addEventListener('resize',()=>{hideTip();});
+
+// ---- Save link: the whole setup is written into the address (after the #), and read back when that address is opened
+function getState(){
+ const cm=document.getElementById('n_cocmode');
+ return{v:topView?1:0,u:imperial?1:0,l:LENS?Object.keys(LENSES).find(k=>LENSES[k]===LENS):'custom',fl:V.fl,ap:V.ap,h:V.h,cam:V.cam,tilt:V.tilt,focus:V.focus,shift:V.shift,sensor:V.sensor,circ:V.circ,view:V.view,
+  cm:cm.value,coc:V.coc,cv:curvLvl,fo:fovOnly?1:0,g:GMODE,top:TOP,side:SIDE};
+}
+const b64e=t=>btoa(unescape(encodeURIComponent(t))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d=t=>decodeURIComponent(escape(atob(t.replace(/-/g,'+').replace(/_/g,'/'))));
+function applyState(st){
+ const num=(x,d)=>typeof x==='number'&&isFinite(x)?x:d;
+ resetAll();setView(!!st.v);
+ if(!!st.u!==imperial)setUnits(!!st.u);
+ if(st.l&&LENSES[st.l])setLens(st.l);
+ applySensor(num(st.sensor,DEF.sensor));
+ for(const k of['fl','ap','h','cam','tilt','shift','circ','view'])setVal(k,num(st[k],defVal(k,imperial)));
+ V.focus=Math.min(110,Math.max(0,num(st.focus,V.focus)));syncFocus();
+ if(['sharp','soft','custom'].includes(st.cm)){if(st.cm==='custom'){const c=document.getElementById('n_coc');c.value=num(st.coc,0.021);}setCocMode(st.cm);}
+ curvLvl=[0,1,2].includes(st.cv)?st.cv:0;curved=curvLvl>0;document.getElementById('n_curv').value=String(curvLvl);updateAuto();
+ fovOnly=!!st.fo;document.getElementById('fov-only').checked=fovOnly;
+ setGround(st.g===1||st.g===2?(st.v?0:st.g):0);
+ TOP=Array.isArray(st.top)?st.top:[];SIDE=Array.isArray(st.side)?st.side:[];syncObjs();
+ focusAnchor=null;tiltAnchor=null;draw();
+}
+const SHARE_URL='https://rcdeloe.github.io/Tilt-Shift-Demo/'; // links always open the shared version of the tool
+function stateLink(){return SHARE_URL+'#s='+b64e(JSON.stringify(getState()));}
+function restoreFromHash(){
+ const m=/^#s=([A-Za-z0-9_-]+)$/.exec(location.hash);if(!m)return;
+ try{applyState(JSON.parse(b64d(m[1])));}catch(e){console.warn('Could not read the link',e);}
+}
+document.getElementById('link-btn').addEventListener('click',async()=>{
+ const btn=document.getElementById('link-btn');let ok=false;
+ try{await navigator.clipboard.writeText(stateLink());ok=true;}catch(e){}
+ btn.textContent=ok?'Link copied':'Copy not available here';clearTimeout(btn.t);btn.t=setTimeout(()=>{btn.textContent='Save link';},2400);
+});
+addEventListener('hashchange',restoreFromHash);
+restoreFromHash();
 
 draw();
 </script>
