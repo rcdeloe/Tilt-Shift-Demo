@@ -83,6 +83,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 .objs th[scope=colgroup]{padding-bottom:0;border-bottom:1px solid var(--line)}
 .objs input{width:18px;height:18px;accent-color:var(--accent);vertical-align:middle;cursor:pointer}
 .objs label{cursor:pointer}
+input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls the page */
 .objbtn{margin:0!important;font-size:13px!important;padding:5px 10px!important}
 #objs-side,#objs-body{display:flex;flex-wrap:wrap;gap:8px}
 .objrow{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px}
@@ -97,7 +98,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v235</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v241</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus<b class="dast"></b></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness<b class="dast"></b></span><span id="dleg" style="display:none"><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><g fill="var(--accent)"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="15" cy="2" r="1.2"/><circle cx="21" cy="2" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="24" cy="6" r="1.2"/></g><line x1="0" y1="10.5" x2="26" y2="10.5" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/></svg>Sharp only if diffraction is ignored</span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
@@ -478,17 +479,17 @@ function sideSnap(so,t,lo,hi){ // the free spot nearest to t: t itself, or just 
  let best=null,bd=1e9;c.forEach(x=>{if(x<lo||x>hi||!sideFree(so,x))return;const d=Math.abs(x-t);if(d<bd){bd=d;best=x;}});return best;}
 const OBJS=[{id:'wall',name:'Wall'},{id:'shrub',name:'Shrub'},{id:'bigtree',name:'Large tree'},{id:'building',name:'Building'}];
 let TOP=[],objH=[]; // the placed elements in the top view: each one can be dragged on its own
-const WALL_L=15; // the wall is 15 m long and 0.5 m thick
+const WALL_L=20,WALL_HT=0.5; // the wall is 20 m long and 1 m thick (WALL_HT is half the thickness)
 const SHR_R=1.0; // the shrub seen from above is 2 m across, wider than a small tree's canopy (about 1.5 m)
 const TOP_DEF={shrub:()=>[{k:'tree',g:'shrub',sh:1,x:12.6,y:-7.7,ph:1.3,R:SHR_R}],
- wall:()=>[{k:'wall',g:'wall',a:[3.8,5.75],b:[18.8,5.75]}],
+ wall:()=>{const ax=Math.min(3.8,(view.x0+view.x1)/2-WALL_L/2);return[{k:'wall',g:'wall',a:[ax,5.75],b:[ax+WALL_L,5.75]}];}, // starts 3.8 m out, or is centred along the view when the scene is not deep enough for that
  bigtree:()=>[{k:'tree',g:'bigtree',x:view.x1-BIG_R-0.5,y:view.y1-56*(view.y1-view.y0)/view.W-BIG_R-0.4,ph:0.6,R:BIG_R}], // the large tree: the canopy is as wide as the side-view tree's (about 9.4 m); it starts in the upper left corner of the view, clear of the axis labels (56 pixels wide)
 
  building:()=>[{k:'building',g:'building',x:Math.min(27.1,view.x1)-2.5,y:Math.max(-17.1,view.y0)+2.5,r:0}]}; // placed as in the reference layout; (x,y) of the building is the middle of its corner block, the point it moves and turns about
 const BLD_L=[[2.5,-2.5],[2.5,12.5],[-2.5,12.5],[-2.5,2.5],[-12.5,2.5],[-12.5,-2.5]]; // two 15 m outer sides and 5 m short sides, relative to that point
 const LT=(o,lx,ly)=>{const c=Math.cos(o.r||0),n=Math.sin(o.r||0);return[o.x+lx*c-ly*n,o.y+lx*n+ly*c];};
 const BLD=o=>BLD_L.map(q=>LT(o,q[0],q[1]));
-const wallP=w=>{const dx=w.b[0]-w.a[0],dy=w.b[1]-w.a[1],L=Math.hypot(dx,dy),nx=-dy/L*0.25,ny=dx/L*0.25;return[[w.a[0]+nx,w.a[1]+ny],[w.b[0]+nx,w.b[1]+ny],[w.b[0]-nx,w.b[1]-ny],[w.a[0]-nx,w.a[1]-ny]];};
+const wallP=w=>{const dx=w.b[0]-w.a[0],dy=w.b[1]-w.a[1],L=Math.hypot(dx,dy),nx=-dy/L*WALL_HT,ny=dx/L*WALL_HT;return[[w.a[0]+nx,w.a[1]+ny],[w.b[0]+nx,w.b[1]+ny],[w.b[0]-nx,w.b[1]-ny],[w.a[0]-nx,w.a[1]-ny]];};
 const segD=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy,t=L?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L)):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);};
 const inPoly=(p,P)=>{let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++)if((P[i][1]>p[1])!==(P[j][1]>p[1])&&p[0]<(P[j][0]-P[i][0])*(p[1]-P[i][1])/(P[j][1]-P[i][1])+P[i][0])c=!c;return c;};
 const sd=(p,a,b)=>((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]))/(Math.hypot(b[0]-a[0],b[1]-a[1])||1); // signed distance of p from the line a-b
@@ -540,9 +541,9 @@ function layered(m,alpha,fn){ // draw something opaque on a scratch layer, then 
  fn(g);m.save();m.setTransform(1,0,0,1,0,0);m.globalAlpha=alpha;m.drawImage(LAYER,0,0);m.restore();}
 function placeGroup(g){ // put the group down where it clashes with nothing already there, as near its usual spot as possible
  const nn=1+Math.max(0,...TOP.filter(o=>o.g===g).map(o=>o.n||0)),def=TOP_DEF[g]().map(o=>({...o,n:nn})),mv=(dx,dy)=>def.map(o=>o.k==='wall'?{...o,a:[o.a[0]+dx,o.a[1]+dy],b:[o.b[0]+dx,o.b[1]+dy]}:{...o,x:o.x+dx,y:o.y+dy});
- const offs=[[0,0]];for(let k=1;k<=160;k++)offs.push([0,-(g==='wall'?2:0.5)*k]); // a further copy is moved to the right of the others (the right-hand side is negative y)
+ const offs=[[0,0]];for(let k=1;k<=160;k++)offs.push([0,-(g==='wall'?3:0.5)*k]); // a further copy is moved to the right of the others (the right-hand side is negative y)
  for(let r=1;r<=30;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)if(Math.max(Math.abs(dx),Math.abs(dy))===r)offs.push([dx,dy]);
- for(const[dx,dy]of offs){const c=mv(dx,dy);if(c.every(inScene)&&!c.some(e=>hitsCam(e)||TOP.some(q=>clash(q,e)))){TOP.push(...c);return true;}}
+ for(const[dx,dy]of offs){const c=mv(dx,dy);if((c.every(inScene)||(g==='wall'&&view.x1-view.x0<WALL_L+0.6))&&!c.some(e=>hitsCam(e)||TOP.some(q=>clash(q,e)))){TOP.push(...c);return true;}}
  return false;
 }
 const addName=n=>'Add '+n.charAt(0).toLowerCase()+n.slice(1);
@@ -826,10 +827,10 @@ function draw(){
   const ring=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<28;q++){const a=q/28*Math.PI*2,m=1+0.10*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
   // x is distance in front of the camera and y is distance to the left of it, both in metres; objects are only drawn from above
   if(topView)clampObjs(x0,x1,y0,y1);
-  if(topView)for(const wl of TOP.filter(o=>o.k==='wall')){const wa=wl.a,wb=wl.b,ux=(wb[0]-wa[0])/WALL_L,uy=(wb[1]-wa[1])/WALL_L,nx=-uy*0.25,ny=ux*0.25;
+  if(topView)for(const wl of TOP.filter(o=>o.k==='wall')){const wa=wl.a,wb=wl.b,LW=Math.hypot(wb[0]-wa[0],wb[1]-wa[1])||WALL_L,ux=(wb[0]-wa[0])/LW,uy=(wb[1]-wa[1])/LW,nx=-uy*WALL_HT,ny=ux*WALL_HT;
    const Q=(t,sg)=>[wa[0]+ux*t+sg*nx,wa[1]+uy*t+sg*ny];
-   sx.globalAlpha=0.9;sx.fillStyle='#a39b8c';poly([Q(0,1),Q(WALL_L,1),Q(WALL_L,-1),Q(0,-1)]);sx.fill();sx.stroke();
-   sx.globalAlpha=0.35;sx.strokeStyle='#5f5848';sx.beginPath();for(let t=0.5;t<WALL_L;t+=0.5){const q=Q(t,1),r=Q(t,-1);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();sx.strokeStyle=ol;sx.globalAlpha=1;}
+   sx.globalAlpha=0.9;sx.fillStyle='#a39b8c';poly([Q(0,1),Q(LW,1),Q(LW,-1),Q(0,-1)]);sx.fill();sx.stroke();
+   sx.globalAlpha=0.35;sx.strokeStyle='#5f5848';sx.beginPath();for(let t=0.5;t<LW;t+=0.5){const q=Q(t,1),r=Q(t,-1);sx.moveTo(PX(q[0]),PY(q[1]));sx.lineTo(PX(r[0]),PY(r[1]));}sx.stroke();sx.strokeStyle=ol;sx.globalAlpha=1;}
   if(topView&&TOP.some(o=>o.k==='tree')){
    for(const o of TOP){if(o.k!=='tree')continue;const cx=o.x,cy=o.y,ph=o.ph,BR=o.R||0,gs=BR?BR/0.77:1; // BR: canopy radius of the large tree; gs scales the small tree's shading to it
     if(o.sh){ // a shrub from above: a dense, rounded mass of foliage with a slightly wavy edge, lit from the upper left, as in the side view
@@ -884,7 +885,7 @@ function draw(){
   const XR=COARSE?12:7,xbtn=(X,Y,rm)=>{objH.push({id:'x'+objH.length,px:X,py:Y,rm});
    if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(150,35,35,0.92)';sx.beginPath();sx.arc(X,Y,XR,0,7);sx.fill();sx.stroke();
     const e=XR*0.4;sx.lineWidth=COARSE?2.4:1.8;sx.beginPath();sx.moveTo(X-e,Y-e);sx.lineTo(X+e,Y+e);sx.moveTo(X+e,Y-e);sx.lineTo(X-e,Y+e);sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}};
-  if(topView){const seen=new Set();TOP.forEach(o=>{const key=o.g+'#'+(o.n||0);if(seen.has(key))return;seen.add(key);const q=o.k==='wall'?o.a:[o.x,o.y],st=((seen.size-1)%2)*(2*XR+4);xbtn(PX(q[0])+(COARSE?32:18),PY(q[1])-(COARSE?32:18)-st,()=>{TOP=TOP.filter(t=>!(t.g===o.g&&(t.n||0)===(o.n||0)));});});}
+  if(topView){const seen=new Set();TOP.forEach(o=>{const key=o.g+'#'+(o.n||0);if(seen.has(key))return;seen.add(key);const q=o.k==='wall'?[(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2]:[o.x,o.y],st=((seen.size-1)%2)*(2*XR+4);xbtn(PX(q[0])+(COARSE?32:18),PY(q[1])-(COARSE?32:18)-st,()=>{TOP=TOP.filter(t=>!(t.g===o.g&&(t.n||0)===(o.n||0)));});});}
   if(!topView)SIDE.forEach((o,i)=>{objH.push({id:'s'+i,px:PX(o.x),py:PY(Gy(o.x))-12});
    if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(Gy(o.x))-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}
    xbtn(PX(o.x),PY(Gy(o.x))+(COARSE?44:38)+(i%2)*(COARSE?28:22),()=>{const k=SIDE.indexOf(o);if(k>=0)SIDE.splice(k,1);});});
@@ -1125,7 +1126,7 @@ function draw(){
 const toCanvas=e=>{const r=sc.getBoundingClientRect(),rx=(e.clientX-r.left)*view.W/r.width,ry=(e.clientY-r.top)*view.H/r.height;return view.top?[view.H-ry,rx]:[rx,ry];}; // in the top view, back into the unturned layout
 const toWorld=p=>[view.x0+p[0]/view.vw*(view.x1-view.x0),view.y1-p[1]/view.vh*(view.y1-view.y0)];
 // tol is in on-screen pixels: generous for a finger, tighter for a mouse
-function pick(p,tol){let best=null,bd=tol;for(const h of handles){const d=Math.hypot(h.px-p[0],h.py-p[1])+(h.id[0]==='o'?8:0)+(COARSE&&!h.rm?5:0)-(h.rm?4:0); /* on a touch screen the remove buttons win a close call */if(d<bd){bd=d;best=h;}}return best;}
+function pick(p,tol){let best=null,bs=Infinity;for(const h of handles){const d=Math.hypot(h.px-p[0],h.py-p[1]);if(d>=tol)continue;const sc=d+(h.id[0]==='o'?8:0)+(h.rm?16:0);if(sc<bs){bs=sc;best=h;}}return best;} // a handle must be within tol; among those, object move dots count as a little nearer than they are, and the remove X as farther, so a close call goes to move
 function applyDrag(w){
  if(drag==='focus'){
   // find the focus setting whose plane passes closest to the pointer (tilt unchanged), then remember the pointer as the dot's anchor
@@ -1190,6 +1191,13 @@ sc.addEventListener('pointermove',e=>{const p=toCanvas(e);if(!drag){const hh=pic
 sc.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0],r=sc.getBoundingClientRect();
  if(pick(toCanvas(t),HIT_TOUCH))e.preventDefault();},{passive:false});
 sc.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
+// touch screens: a slider moves only when the finger lands on its thumb, so a swipe or tap that starts elsewhere on the track scrolls the page and leaves the slider alone
+{let blockEl=null,startVal=null;
+ document.addEventListener('pointerdown',e=>{blockEl=null;const r=e.target;if(!(r instanceof HTMLInputElement&&r.type==='range')||e.pointerType==='mouse')return;
+  const b=r.getBoundingClientRect(),mn=+r.min,mx=+r.max,f=mx>mn?(+r.value-mn)/(mx-mn):0,tx=b.left+11+f*(b.width-22);
+  if(Math.abs(e.clientX-tx)>30){blockEl=r;startVal=r.value;}},true);
+ document.addEventListener('input',e=>{if(blockEl&&e.target===blockEl){e.stopImmediatePropagation();blockEl.value=startVal;}},true);
+ ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,()=>{blockEl=null;},true));}
 const endDrag=()=>{drag=null;sc.style.cursor='default';};
 sc.addEventListener('pointerup',endDrag);sc.addEventListener('pointercancel',endDrag);
 if(typeof window!=='undefined')window.addEventListener('resize',draw);
@@ -1238,7 +1246,7 @@ const TIPS={
  fov:'Field of view is determined by the chosen focal length and sensor. The teal shading for the acceptably sharp area extends beyond it, to the edge of the lens\'s image circle (the lens forms an image beyond the sensor, and lens shift moves the sensor within it). The shading can be limited to the field of view using a check box under Additional controls.',
  ground:'Choose flat, level ground, or ground that is uneven and slopes down or up. Uneven ground is level for the first metre from the lens and then has an overall slope of roughly 6%, with local slopes that vary and sometimes run against the trend for a few metres. The surface is the same every time. "Ground in acceptably sharp focus" is the part of the surface that lies within the limits of acceptable sharpness, and only where the lens can see it: ground hidden behind a rise is not counted. Distances are measured straight along the level from the camera, not along the slope. Auto Tilt/Focus and the point where the plane of focus meets the ground follow the surface too.',
  hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is 0 degrees. Use the button to focus automatically at the hyperfocal distance.',
- objs:()=>T()?'Use the Add buttons to place background objects in the view. Pressing a button again adds another of the same kind, placed to the right of the ones already there. Once placed, drag the dark dot on any object to move it. Each tree and shrub moves on its own. The wall is 15 m (about 49 ft) long: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. To remove an object, click or touch the small red X beside it. Objects can touch but cannot overlap.':'Use the Add buttons to add objects of different sizes and heights to the view. The first of each kind is placed at a standard distance from the camera (the low plant, boulder, shrub, tree and wall start at '+(imperial?'6, 15, 30, 50 and 75 ft':'2, 5, 10, 15 and 23 m')+'); pressing a button again adds another, bumped to the right to the nearest free spot. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. To remove an object, click or touch the small red X beside it. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it.',
+ objs:()=>T()?'Use the Add buttons to place background objects in the view. Pressing a button again adds another of the same kind, placed to the right of the ones already there. Once placed, drag the dark dot on any object to move it. Each tree and shrub moves on its own. The wall is 20 m (about 66 ft) long and 1 m (about 3 ft) thick: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. To remove an object, click or touch the small red X beside it. Objects can touch but cannot overlap.':'Use the Add buttons to add objects of different sizes and heights to the view. The first of each kind is placed at a standard distance from the camera (the low plant, boulder, shrub, tree and wall start at '+(imperial?'6, 15, 30, 50 and 75 ft':'2, 5, 10, 15 and 23 m')+'); pressing a button again adds another, bumped to the right to the nearest free spot. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. To remove an object, click or touch the small red X beside it. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it.',
  auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view.',
  hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees.',
  view:'Choose between a side profile (Tilt Up/Down) or a top-down view (Tilt Left/Right). Diagonal tilt is not available. Changing the view also resets all settings and background objects to their defaults.',
@@ -1293,6 +1301,10 @@ function wrapWith(el,id,what,inline){const w=document.createElement('div');w.cla
  {const o=document.getElementById('out'),w=document.createElement('div');w.style.position='relative';o.parentNode.insertBefore(w,o);w.appendChild(o);const b=mkBubble('readout','the results');b.style.cssText='position:absolute;right:0;top:12px;margin:0';w.appendChild(b);}
  const ov=document.getElementById('sceneTips');
  [['cam','the camera and lens'],['focus','the focus control'],['tilt','the tilt control'],['fov','the field of view'],['hyper','the hyperfocal distance'],['plane','the plane of focus'],['limits','the limits of acceptable sharpness'],['hinge','the hinge line'],['lplane','the lens plane line'],['laxis','the lens axis line']].forEach(([id,w])=>ov.appendChild(mkBubble(id,w)));
+ // the same bubbles beside their legend entries; they read the same TIPS entry, so the text is always identical
+ [['Plane of focus','plane','the plane of focus'],['Limits of acceptable sharpness','limits','the limits of acceptable sharpness'],['Hyperfocal','hyper','the hyperfocal distance'],['Field of view','fov','the field of view'],['Hinge line','hinge','the hinge line'],['Lens plane','lplane','the lens plane line'],['Lens axis','laxis','the lens axis line']].forEach(([t,id,w])=>{
+  const sp=[...document.querySelectorAll('.legend > span')].find(e=>e.textContent.trim().startsWith(t));if(!sp){console.warn('no legend item',t);return;}
+  const b=mkBubble(id,w+' (legend)');b.style.marginLeft='8px';sp.appendChild(b);});
 }
 function resolvePending(){ // put the line bubbles near their usual spots, but never close to another bubble, so they cannot be mistaken for it
  PENDING.forEach(pd=>{TA=TA.filter(a=>a.id!==pd.id);
