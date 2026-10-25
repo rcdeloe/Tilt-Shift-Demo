@@ -20,7 +20,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 "Atkinson Hype
 .helpbtn{font:inherit;font-weight:600;font-size:13px;padding:5px 12px;border:1px solid var(--accent);border-radius:999px;background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex:none}
 .helpbtn[aria-pressed=true]{background:var(--accent);color:var(--panel)}
 .ib{display:none;width:22px;height:22px;min-width:22px;padding:0;border-radius:50%;border:1.5px solid var(--accent);background:var(--panel);color:var(--accent);font:italic 700 13px/1 Georgia,serif;cursor:pointer;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;box-shadow:0 0 0 2px var(--panel)}
-body.help .ib{display:inline-flex}
+body.help .ib,.ib.always{display:inline-flex}
 body.help .readout{padding-right:34px}
 .ib:focus-visible,.helpbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(pointer:coarse){.ib{width:28px;height:28px;min-width:28px}}
@@ -95,7 +95,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-24</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v229</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus<b class="dast"></b></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness<b class="dast"></b></span><span id="dleg" style="display:none"><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><g fill="var(--accent)"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="15" cy="2" r="1.2"/><circle cx="21" cy="2" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="24" cy="6" r="1.2"/></g><line x1="0" y1="10.5" x2="26" y2="10.5" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/></svg>Sharp only if diffraction is ignored</span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
@@ -136,6 +136,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
    </div>
    <label class="fovrow" id="fov-row"><input type="checkbox" id="fov-only"> Show in focus only within field of view</label>
    <label class="fovrow off" id="diff-row" style="display:none"><input type="checkbox" id="diff-on" disabled> Include diffraction</label>
+   <div class="row" id="ground-row"><label for="n_ground">Ground surface</label><select id="n_ground" style="grid-column:1/3"><option value="0">Flat, level ground</option><option value="1">Uneven ground sloping down</option><option value="2">Uneven ground sloping up</option></select></div>
    <div class="row" id="curv-row"><label for="n_curv">Field curvature</label><select id="n_curv" style="grid-column:1/3"><option value="0">None</option><option value="1">Mild</option><option value="2">Strong</option></select></div>
    </details>
    <p class="note" style="margin:0">Thin-lens model, tilt pivoting about the lens centre, focus set by sensor-to-lens extension. Real lenses differ slightly.</p>
@@ -245,7 +246,7 @@ function build(id,list){
 build('main-controls',MAIN);build('adv-controls',EXTRA.concat(ADV));
 {const box=document.getElementById('adv-controls'),row=id=>{const e=document.getElementById(id);return e&&(e.closest('.row')||e.parentElement);};
  // Additional controls, in this order: units, scene width/depth, field curvature, in-focus-only check, sensor format, circle of confusion
- [document.querySelector('.unitsw'),row('n_view'),document.getElementById('curv-row'),document.getElementById('fov-row'),row('n_sensor'),row('n_circ'),row('n_coc'),document.getElementById('diff-row')].forEach(e=>{if(e)box.appendChild(e);});}
+ [document.querySelector('.unitsw'),row('n_view'),document.getElementById('ground-row'),document.getElementById('curv-row'),document.getElementById('fov-row'),row('n_sensor'),row('n_circ'),row('n_coc'),document.getElementById('diff-row')].forEach(e=>{if(e)box.appendChild(e);});}
 // focus: slider position (0-100, log scale, 100 = infinity) <-> distance in metres along the lens axis
 const FAR=5000;
 const tickStep=(span,n)=>imperial?nice(span*FT/n)/FT:nice(span/n); // a round step in the current units, in metres
@@ -295,11 +296,12 @@ function autoScore(nx,ny,N){
  // equal steps across the picture; for each, find the ground point seen there (if any) and test whether it is sharp
  let g=0,gt=0;const H=M.h*1000;
  for(let i=0;i<N;i++){const q=(M.shift-M.S/2+M.S*(i+0.5)/N)/M.j,den=q*M.cp-M.sp; // q = tan of the viewing angle
+  if(GMODE){const dirx=M.cp+q*M.sp;if(!(dirx>1e-9))continue;const hx=rayGround(M.h,dirx,den);if(hx===null)continue;gt++;if(blurSc(hx,Gy(hx))<=M.c)g++;continue;}
   if(Math.abs(den)<1e-9)continue;
   const dx=-H*(M.cp+q*M.sp)/den;if(!(dx>0)||dx>1e7)continue;
   gt++;if(blurSc(dx/1000,0)<=M.c)g++;}
  let tot=0,sh=0;
- for(let i=0;i<nx;i++)for(let k=0;k<ny;k++){const x=(i+.5)*15/nx,y=(k+.5)*5/ny;if(!visible(x,y))continue;tot++;if(blurSc(x,y)<=M.c)sh++;}
+ for(let i=0;i<nx;i++)for(let k=0;k<ny;k++){const x=(i+.5)*15/nx,y=Gy(x)+(k+.5)*5/ny;if(!visible(x,y))continue;tot++;if(blurSc(x,y)<=M.c)sh++;}
  return 0.7*(gt?g/gt:0)+0.3*(tot?sh/tot:0); // ground in the picture counts 70%, field of view 30%
 }
 function autoTiltFocus(){
@@ -393,6 +395,7 @@ async function takeScreenshot(fmt){
 document.getElementById('auto-btn').addEventListener('click',autoTiltFocus);
 document.getElementById('fov-only').addEventListener('change',e=>{fovOnly=e.target.checked;draw();});
 document.getElementById('diff-on').addEventListener('change',e=>{diffr=e.target.checked;draw();});
+document.getElementById('n_ground').addEventListener('change',e=>{setGround(+e.target.value);draw();});
 document.getElementById('n_curv').addEventListener('change',e=>{curvLvl=+e.target.value;curved=curvLvl>0;updateAuto();draw();});
 document.getElementById('hyper-btn').addEventListener('click',()=>{setFocusDist(hyperM());draw();});
 // imperial users get round-number defaults of their own: camera height 70 in, scene width 80 ft, focus distance 10 ft
@@ -433,7 +436,7 @@ function setLens(id){
  if(u!==null)setFocusDist(Math.max(u,DMIN));else syncFocus();
 } // the shift limit is recalculated at the start of model(), on the next draw
 function resetAll(){ // everything back to its default (using the defaults for the current units); the units are left as they are
- setLens('custom');
+ setLens('custom');setGround(0);
  for(const k in DEF)if(k!=='focus'&&k!=='coc')setVal(k,defVal(k,imperial));
  focusAnchor=null;tiltAnchor=null;
  setCocMode('sharp');
@@ -601,10 +604,41 @@ function planePts(){
  }
  return pts;
 }
+// ---- ground surface: flat and level (0), uneven sloping down (1) or uneven sloping up (2). Level to 1 m from the lens, then a profile with an
+// overall trend of roughly 6% and local slopes that vary and sometimes run against it (short stretches of up to 5 m). Fixed pseudo-random
+// profiles, so a given choice always gives the same ground. Heights are stored every 0.5 m from 1 m out to 650 m.
+let GMODE=0,GY=null;const GSTEP=0.5,GN=1300;
+function mkGround(mode){
+ let a=mode===1?12:122;/* seeds chosen for a convincing look in the first 40 m */const rnd=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+ const dir=mode===1?-1:1,y=new Array(GN).fill(0);let i=0,h=0;
+ while(i<GN-1){
+  const counter=rnd()<0.30; // a stretch running against the overall trend: 1 to 5 m long
+  const steps=counter?2+Math.floor(rnd()*9):4+Math.floor(rnd()*16),slope=counter?-dir*(0.05+rnd()*0.17):dir*(0.02+rnd()*0.17);
+  for(let k=0;k<steps&&i<GN-1;k++){h+=(slope+(rnd()-0.5)*0.07)*GSTEP;y[++i]=h;} // local unevenness on top of the stretch's slope
+ }
+ return y;
+}
+function Gy(x){ // ground height (m) at a distance x (m) in front of the camera
+ if(!GMODE||x<=1)return 0;const k=(x-1)/GSTEP,i=Math.floor(k);
+ if(i>=GN-1)return GY[GN-1]+(x-1-(GN-1)*GSTEP)*(GMODE===1?-0.06:0.06);
+ const f=k-i;return GY[i]*(1-f)+GY[i+1]*f;
+}
+function setGround(m){GMODE=m;GY=m?mkGround(m):null;const e=document.getElementById('n_ground');if(e)e.value=m;}
+function rayGround(h,dx,dy){ // distance at which a ray from the lens (height h) first meets the ground, or null
+ const m=dy/dx;let xp=0.02;if(h+m*xp-Gy(xp)<=0)return xp;
+ for(let x=xp+0.1;x<500;x=xp+Math.max(0.1,xp*0.02)){if(h+m*x-Gy(x)<=0){let lo=xp,hi=x;for(let k=0;k<8;k++){const md=(lo+hi)/2;if(h+m*md-Gy(md)<=0)hi=md;else lo=md;}return hi;}xp=x;}
+ return null;
+}
 function groundHit(){
  const P=planePts();if(P.length<2)return null;
  const A=cw(P[0][0]/1000,P[0][1]/1000),B=cw(P[1][0]/1000,P[1][1]/1000);
  const dx=B[0]-A[0],dy=B[1]-A[1];
+ if(GMODE){ // the first place beyond the lens where the plane of focus meets the uneven ground
+  if(Math.abs(dx)<1e-12)return A[0]>0.02?A[0]:null;
+  const m=dy/dx,f=x=>A[1]+(x-A[0])*m-Gy(x);let xp=0.02,fp=f(xp);
+  for(let x=xp*1.01;x<600;x*=1.01){const v=f(x);if(fp*v<=0&&fp!==v){let lo=xp,hi=x,fl=fp;for(let k=0;k<30;k++){const md=(lo+hi)/2,fm=f(md);if(fm*fl<=0)hi=md;else{lo=md;fl=fm;}}return (lo+hi)/2;}xp=x;fp=v;}
+  return null;
+ }
  if(Math.abs(dy)<1e-9*Math.abs(dx)+1e-12)return null;
  return A[0]+(-A[1]/dy)*dx;
 }
@@ -684,10 +718,26 @@ function draw(){
  // ground (side view only: from above the ground is simply the whole picture)
  if(topView){obst.push({x:0,y:0,w:W,h:56});obst.push({x:0,y:0,w:34,h:H});}
  else{
+ if(GMODE){
+  const stp=3;sx.globalAlpha=0.5;sx.fillStyle=gnd;sx.beginPath();sx.moveTo(0,H);
+  for(let px=0;px<=W+stp;px+=stp)sx.lineTo(px,PY(Gy(x0+px/W*(x1-x0))));
+  sx.lineTo(W+stp,H);sx.closePath();sx.fill();sx.globalAlpha=1;
+  sx.strokeStyle=line;sx.lineWidth=1;sx.setLineDash([2,5]);sx.beginPath();sx.moveTo(0,PY(0));sx.lineTo(W,PY(0));sx.stroke();sx.setLineDash([]); // the level line at the camera's ground, the zero of the distance scale
+  {obst.push({x:0,y:PY(0)+6,w:W,h:24});obst.push({x:0,y:0,w:56,h:H});}
+  sx.strokeStyle=brown;sx.lineWidth=4;sx.lineJoin='round';sx.beginPath();
+  for(let px=0;px<=W+stp;px+=stp){const q=PY(Gy(x0+px/W*(x1-x0)));px?sx.lineTo(px,q):sx.moveTo(px,q);}sx.stroke();
+  sx.strokeStyle=acc;sx.lineWidth=9;sx.lineCap='butt';{ // sharp ground, drawn heavier on top, only where the lens can see the surface
+   let mx=-Infinity;const dxm=2*mpp;
+   for(let x=0.02;x<x1;x+=dxm){const yg=Gy(x),e=Math.atan2(yg-M.h,x),vis=e>=mx-1e-9;if(e>mx)mx=e;
+    if(!vis||x<x0||(fovOnly&&!visible(x,yg)))continue;
+    if(blurAt(x,yg)<=M.c||(diffr&&blurGeo(x,yg)<=M.c&&PX(x)%28<20)){sx.beginPath();sx.moveTo(PX(x),PY(yg));sx.lineTo(PX(x+1.15*dxm),PY(Gy(x+1.15*dxm)));sx.stroke();}}}
+  sx.lineWidth=1;
+ }else{
  sx.globalAlpha=0.5;sx.fillStyle=gnd;sx.fillRect(0,PY(0),W,H-PY(0));sx.globalAlpha=1;
  {obst.push({x:0,y:PY(0)+6,w:W,h:24});obst.push({x:0,y:0,w:56,h:H});}
  sx.fillStyle=brown;sx.fillRect(0,PY(0)-2,W,4); // the ground line
  sx.fillStyle=acc;for(let px=0;px<W;px+=2){const x=x0+(px+1)/W*(x1-x0);if(!fovOnly||visible(x,0)){if(blurAt(x,0)<=M.c)sx.fillRect(px,PY(0)-4.5,2,9);else if(diffr&&blurGeo(x,0)<=M.c&&px%28<20)sx.fillRect(px,PY(0)-4.5,2,9);}} // sharp ground, drawn heavier on top
+ }
  }
  // background objects, drawn to scale and standing on the ground
  {const kx=W/(x1-x0),ol='rgba(20,30,20,0.55)';
@@ -695,7 +745,7 @@ function draw(){
    for(let i=0;i<n;i++){const c=pts[i],q=mid(c,pts[(i+1)%n]);sx.quadraticCurveTo(PX(c[0]),PY(c[1]),PX(q[0]),PY(q[1]));}sx.closePath();};
   const circ=(cx,cy,r)=>{sx.beginPath();sx.arc(PX(cx),PY(cy),r*kx,0,7);};
   sx.lineWidth=1;sx.strokeStyle=ol;
-  if(!topView)SIDE.forEach(so=>{const o=SOBJS.find(q=>q.id===so.t),d=so.x;
+  const sideObj=so=>{const o=SOBJS.find(q=>q.id===so.t),d=so.x;
    if(d+2<x0||d-2>x1)return;
    sx.globalAlpha=0.7;
    if(o.id==='plant'){sx.fillStyle='#6f9a3e';
@@ -753,7 +803,8 @@ function draw(){
     LB.forEach(([u,v,r])=>{soft(X(u+0.3*r),Y(v-0.5*r),R(r*0.95),'rgba(15,46,22,0.30)');});     // shade low on each lobe
     LB.forEach(([u,v,r])=>{soft(X(u-0.25*r),Y(v+0.3*r),R(r*0.7),'rgba(210,240,143,0.40)');});   // light catching each lobe, upper left
     sx.restore();});}
-   sx.globalAlpha=1;});
+   sx.globalAlpha=1;};
+  if(!topView)SIDE.forEach(so=>{if(so.x+2<x0||so.x-2>x1)return;sx.save();sx.translate(0,PY(Gy(so.x))-PY(0));sideObj(so);sx.restore();}); // objects stand on the ground, flat or uneven
   const poly=pts=>{sx.beginPath();pts.forEach((q,n)=>n?sx.lineTo(PX(q[0]),PY(q[1])):sx.moveTo(PX(q[0]),PY(q[1])));sx.closePath();};
   const ring=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<28;q++){const a=q/28*Math.PI*2,m=1+0.10*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
   // x is distance in front of the camera and y is distance to the left of it, both in metres; objects are only drawn from above
@@ -804,8 +855,8 @@ function draw(){
    if(o.k==='wall'){grip('o'+i+'a',o.a[0],o.a[1],4.5);grip('o'+i+'b',o.b[0],o.b[1],4.5);grip('o'+i+'m',(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2,8,arrows);}
    else if(o.k==='building'){grip('o'+i,o.x,o.y,8,arrows);const t=LT(o,-12.5,0);grip('o'+i+'r',t[0],t[1],8,turn);}
    else grip('o'+i,o.x,o.y,4.5);});
-  if(!topView)SIDE.forEach((o,i)=>{objH.push({id:'s'+i,px:PX(o.x),py:PY(0)-12});
-   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(0)-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}});
+  if(!topView)SIDE.forEach((o,i)=>{objH.push({id:'s'+i,px:PX(o.x),py:PY(Gy(o.x))-12});
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(Gy(o.x))-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}});
  }
  // axis ticks
  const gy=topView?H-28:PY(0); // the distance axis sits on the ground line in the side view and along the bottom edge from above
@@ -923,7 +974,7 @@ function draw(){
  // drag handles
  handles=[];objH.forEach(h=>handles.push(h));
  {const edge=x1-0.04*(x1-x0);
-  const g=topView?null:groundHit(),gp=(g!==null&&isFinite(g)&&g>x0+0.07*(x1-x0)&&g<edge)?[PX(g),PY(0)]:null;
+  const g=topView?null:groundHit(),gp=(g!==null&&isFinite(g)&&g>x0+0.07*(x1-x0)&&g<edge)?[PX(g),PY(Gy(g))]:null;
   // focus dot: always on the plane of focus, at the point nearest an anchor. The anchor is wherever the dot was last dropped (or a default
   // spot 78% of the way across at lens height), so when the plane moves the dot slides along it rather than jumping.
   const defAnchor=[x0+0.78*(x1-x0),M.h],ap=[PX(defAnchor[0]),PY(defAnchor[1])];
@@ -974,7 +1025,8 @@ function draw(){
   const Aw=info.A,dp=[info.dx,info.dy];
   let ang=Math.atan2(dp[1],dp[0])*180/Math.PI;if(ang>90)ang-=180;if(ang<=-90)ang+=180;
   row('Plane of focus angle',Math.abs(ang)<0.005?'horizontal':Math.abs(Math.abs(ang)-90)<0.005?'vertical':Math.abs(ang).toFixed(2)+'° '+(ang<0?'descending away':'rising away'));
-  if(Math.abs(dp[1])>1e-9){const t=-Aw[1]/dp[1],gx=Aw[0]+t*dp[0];row('Plane meets ground',gx>0?fmt(gx):'behind camera ('+Lm(gx)+')');}else row('Plane meets ground','never (parallel)');
+  if(GMODE){const gg=groundHit();row('Plane meets ground',gg===null?'does not meet the ground':fmt(gg));}
+  else if(Math.abs(dp[1])>1e-9){const t=-Aw[1]/dp[1],gx=Aw[0]+t*dp[0];row('Plane meets ground',gx>0?fmt(gx):'behind camera ('+Lm(gx)+')');}else row('Plane meets ground','never (parallel)');
   const fl2=(x1-x0)*40,inf=(p,d,col,w,dash)=>{sx.strokeStyle=col;sx.lineWidth=w;sx.setLineDash(dash||[2,10]);sx.beginPath();sx.moveTo(PX(p[0]-d[0]*fl2),PY(p[1]-d[1]*fl2));sx.lineTo(PX(p[0]+d[0]*fl2),PY(p[1]+d[1]*fl2));sx.stroke();sx.setLineDash([]);};
   const dl=cw(M.ct,-M.st).map((v,i)=>v-[0,M.h][i]),up=[M.sp,M.cp];
   inf([0,M.h],dl,muted,1.5); // lens plane extended
@@ -1014,7 +1066,10 @@ function draw(){
  }
  // ground analysis
  // every stretch of ground that meets the circle of confusion (the same test as the heavy teal band), edges refined by bisection
- const N=4000,X0=0.02,X1=5000,xs=i=>X0*Math.pow(X1/X0,i/(N-1)),okAt=x=>{if(!topView)return blurAt(x,0)<=M.c;const w=cw(0,x);return blurAt(w[0],w[1])<=M.c;},spans=[]; // from above, 'ground' becomes the lens axis
+ const N=4000,X0=0.02,X1=GMODE?100:5000; // on uneven ground the analysis stops at 100 m, the widest scene
+ // on uneven ground a stretch counts only if the lens can see it: its direction from the lens must not be lower than that of any nearer ground (nothing hidden behind a rise)
+ const visA=GMODE?(()=>{const v=new Array(N);let mx=-Infinity;for(let i=0;i<N;i++){const x=X0*Math.pow(X1/X0,i/(N-1)),e=Math.atan2(Gy(x)-M.h,x);v[i]=e>=mx-1e-9;if(e>mx)mx=e;}return v;})():null;
+ const xs=i=>X0*Math.pow(X1/X0,i/(N-1)),okAt=x=>{if(!topView){if(GMODE){const ii=Math.max(0,Math.min(N-1,Math.round(Math.log(x/X0)/Math.log(X1/X0)*(N-1))));return visA[ii]&&blurAt(x,Gy(x))<=M.c;}return blurAt(x,0)<=M.c;}const w=cw(0,x);return blurAt(w[0],w[1])<=M.c;},spans=[]; // from above, 'ground' becomes the lens axis
  const edge=(lo,hi)=>{for(let k=0;k<40;k++){const m=Math.sqrt(lo*hi);if(okAt(m)===okAt(lo))lo=m;else hi=m;}return Math.sqrt(lo*hi);};
  let cur=null,prev=okAt(xs(0));if(prev)cur=[xs(0),xs(0)];
  for(let i=1;i<N;i++){const x=xs(i),ok=okAt(x);
@@ -1023,7 +1078,7 @@ function draw(){
   else if(ok&&cur)cur[1]=x;
   prev=ok;}
  if(prev&&cur&&!spans.includes(cur))spans.push(cur);
- row(topView?'Sharp along lens axis':'Ground in focus',spans.length?spans.map(s=>`${fmt(s[0])} to ${(s===cur&&prev)?'∞':fmt(s[1])}`).join('<br>'):'none');
+ row(topView?'Sharp along lens axis':'Ground in focus',spans.length?spans.map(s=>`${fmt(s[0])} to ${(s===cur&&prev)?(GMODE?fmt(X1)+' or more':'∞'):fmt(s[1])}`).join('<br>'):'none');
  { // size of the frame where the plane of focus crosses the lens axis: the gap between the two edges of the field of view, measured straight across through that point
   let fr='n/a';
   if(isFinite(M.Zc)&&M.Zc>0){const d=M.Zc/1000,F=cw(0,d),ys=[-1,1].map(s2=>{const Xs=s2*M.S/2-M.shift,den=M.j*M.cp-Xs*M.sp;return den>1e-9?M.h+(F[0])*(-M.j*M.sp-Xs*M.cp)/den:NaN;});
@@ -1032,7 +1087,7 @@ function draw(){
  row('Field curvature',['None','Mild','Strong'][curvLvl]);
  if(diffr)row('Diffraction','*'+(M.dl?'Airy disc '+(M.airy*1000).toFixed(1)+' µm is larger than the circle of confusion':'Airy disc '+(M.airy*1000).toFixed(1)+' µm; reaches the circle of confusion at f/'+(M.c/(2.44*0.00055*M.nEff/V.ap)).toFixed(1)));
  row('Plane crosses lens axis',M.Zc<0?'behind lens (past infinity)':isFinite(M.Zc)?fmtD(M.Zc/1000):'∞');
- document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus','Field curvature','Diffraction']:['Ground in focus','Plane meets ground','Vertical field of view','Frame height at focus','Field curvature','Diffraction']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
+ document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus','Field curvature','Diffraction']:['Plane meets ground','Vertical field of view','Frame height at focus','Field curvature','Diffraction']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
  placeSceneTips();
 }
 // dragging the handles
@@ -1130,7 +1185,7 @@ function setView(top){
  document.querySelectorAll('.legend .gl').forEach(e=>{e.style.display=top?'none':'';});
  updateAuto();
  refreshLabels();
- document.getElementById('n_h').closest('.row').style.display=top?'none':''; // lens height has no effect when looking from above
+ document.getElementById('n_h').closest('.row').style.display=top?'none':'';document.getElementById('ground-row').style.display=top?'none':''; // the ground surface applies only to Tilt Up/Down // lens height has no effect when looking from above
  document.getElementById('objs-side').style.display=top?'none':'';document.getElementById('objs-body').style.display=top?'':'none';
  sc.setAttribute('aria-label',top?'Top-down view of the plane of focus':'Side view of the plane of focus');
  draw();
@@ -1143,10 +1198,12 @@ document.getElementById('vw-top').addEventListener('click',()=>setView(true));
 let helpOn=false,tipFor=null,tipPinned=false;
 const T=()=>topView;
 const TIPS={
+ about:'Tilt-shift focus explorer is a tool designed to demonstrate how tilt works using tilt-shift lenses. It allows the user to model tilt in the up/down and left/right directions, but not diagonal. Users can choose example tilt-shift lenses to define key parameters such as focal length, maximum aperture, and amount of tilt and shift. However, this educational tool uses a simple lens model that does not exactly match how real tilt-shift lenses operate.',
  cam:'The tool assumes the camera is attached to a tripod, with a tilt-shift lens attached. Applying tilt will tilt the lens, but the sensor will not move. The position and orientation of the camera can be adjusted using the controls.',
  focus:'The point where the plane of focus crosses the lens axis can be changed by dragging the red circle, or by using the controls.',
  tilt:'Tilt can be adjusted by dragging the green diamond or using the controls.',
  fov:'Field of view is determined by the chosen focal length and sensor. The teal shading for the acceptably sharp area extends beyond it, to the edge of the lens\'s image circle (the lens forms an image beyond the sensor, and lens shift moves the sensor within it). The shading can be limited to the field of view using a check box under Additional controls.',
+ ground:'Choose flat, level ground, or ground that is uneven and slopes down or up. Uneven ground is level for the first metre from the lens and then has an overall slope of roughly 6%, with local slopes that vary and sometimes run against the trend for a few metres. The surface is the same every time. "Ground in acceptably sharp focus" is the part of the surface that lies within the limits of acceptable sharpness, and only where the lens can see it: ground hidden behind a rise is not counted. Distances are measured straight along the level from the camera, not along the slope. Auto Tilt/Focus and the point where the plane of focus meets the ground follow the surface too.',
  hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is 0 degrees. Use the button to focus automatically at the hyperfocal distance.',
  objs:()=>T()?'Use the check marks to place background objects in the view. You can use all three at once. Once placed, drag the dark dot on any object to move it. Each tree moves on its own. The wall is 15 m (about 49 ft) long: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. Objects can touch but cannot overlap.':'Use the check boxes to add objects of different sizes and heights to the view. Each is placed at a standard distance from the camera (the low plant, boulder, shrub, tree and wall start at '+(imperial?'6, 15, 30, 50 and 75 ft':'2, 5, 10, 15 and 23 m')+'), or at the nearest free spot if another object is in the way. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it. A check box stays ticked while its object is in the scene, wherever you slide it. Un-check it to remove the object.',
  auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view.',
@@ -1174,7 +1231,7 @@ const TIPS={
  hinge:'The hinge line is the line the plane of focus pivots around as the focus distance changes. It lies at the focal length divided by the sine of the tilt angle from the lens, in the plane through the lens parallel to the sensor, so more tilt brings it closer. The green dot marks the hinge and the dashed green line joins it to the lens. It is not shown when tilt is 0. The hinge belongs to the flat-field plane, so with field curvature on it describes the faint straight reference lines.',
  lplane:'The dotted line through the lens is the lens plane, the plane of the lens itself. It stays square to the lens axis and swings with the lens when tilt is applied. The plane of focus meets it along the same line where it meets the extended sensor plane (the Scheimpflug rule).',
  laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens. The focus distance is measured to the point where the plane of focus crosses this line.',
- readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.':'Ground in focus: the stretch of ground, measured from the camera, that is acceptably sharp (within the lens\'s image circle). Plane meets ground: where the plane of focus reaches the ground. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.',
+ readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.':'Plane meets ground: where the plane of focus reaches the ground. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature and Diffraction: the settings chosen under Additional controls.',
  shot:'Generate and save a summary image of the current view and key parameters as a JPEG or PDF, or copy it to the clipboard as an image.'
 };
 const tipEl=document.getElementById('tip');
@@ -1189,11 +1246,12 @@ function mkBubble(id,what){const b=document.createElement('button');b.type='butt
 function addBubble(host,id,what){host.appendChild(mkBubble(id,what));}
 function wrapWith(el,id,what,inline){const w=document.createElement('div');w.className='bw'+(inline?' inl':'');const cs=getComputedStyle(el);if(!inline){w.style.margin=cs.margin;el.style.margin='0';}el.parentNode.insertBefore(w,el);w.appendChild(el);w.appendChild(mkBubble(id,what));}
 {
+ {const h=document.querySelector('.hdr h1'),b=mkBubble('about','this tool');b.classList.add('always');b.style.marginLeft='10px';h.appendChild(b);} // always shown, whether or not Help is on
  const lab=(sel,id,what)=>{const l=document.querySelector(sel);if(l)addBubble(l,id,what);else console.warn('no label',sel);};
  lab('label[for="n_fl"]','fl','focal length');lab('label[for="r_ap"]','ap','aperture');lab('label[for="n_h"]','h','camera height');
  lab('label[for="n_cam"]','cam_c','camera pitch or pan');lab('label[for="n_tilt"]','tilt_c','lens tilt');lab('label[for="n_focus"]','focus_c','focus distance');
  lab('label[for="n_shift"]','shift_c','lens shift');lab('label[for="n_view"]','view_c','scene size');
- lab('label[for="n_lens"]','lens','lens limits');lab('label[for="n_sensor"]','sensor','sensor format');lab('label[for="n_circ"]','circ','image circle diameter');lab('label[for="n_cocmode"]','coc','circle of confusion');lab('label.fovrow','fovchk','the field of view check box');lab('#diff-row','diff','diffraction');lab('label[for="n_curv"]','curv','field curvature');
+ lab('label[for="n_lens"]','lens','lens limits');lab('label[for="n_ground"]','ground','ground surface');lab('label[for="n_sensor"]','sensor','sensor format');lab('label[for="n_circ"]','circ','image circle diameter');lab('label[for="n_cocmode"]','coc','circle of confusion');lab('label.fovrow','fovchk','the field of view check box');lab('#diff-row','diff','diffraction');lab('label[for="n_curv"]','curv','field curvature');
  wrapWith(document.querySelector('.viewsw:not(.unitsw)'),'view','the view switch');wrapWith(document.querySelector('.unitsw'),'units','the units switch');
  wrapWith(document.getElementById('auto-btn'),'auto','Auto Tilt/Focus',true);wrapWith(document.getElementById('hyper-btn'),'hyperbtn','focus at hyperfocal distance',true);
  wrapWith(document.getElementById('reset'),'reset','Reset to Default',true);wrapWith(document.getElementById('shot-btn'),'shot','Screenshot',true);
@@ -1235,7 +1293,7 @@ document.getElementById('help-btn').addEventListener('click',()=>setHelp(!helpOn
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.ib');
  if(b){e.preventDefault();e.stopPropagation();if(tipFor===b&&tipPinned){hideTip();}else{showTip(b);tipPinned=true;}return;}
  if(!tipEl.contains(e.target))hideTip();},true);
-document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||tipPinned)return;const b=e.target.closest&&e.target.closest('.ib');if(b&&helpOn)showTip(b);});
+document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||tipPinned)return;const b=e.target.closest&&e.target.closest('.ib');if(b&&(helpOn||b.classList.contains('always')))showTip(b);});
 document.addEventListener('pointerout',e=>{if(e.pointerType!=='mouse'||tipPinned)return;const b=e.target.closest&&e.target.closest('.ib');if(b)hideTip();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip();});
 addEventListener('scroll',hideTip,{passive:true});addEventListener('resize',()=>{hideTip();});
