@@ -98,7 +98,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v256</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v257</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus<b class="dast"></b></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness<b class="dast"></b></span><span id="dleg" style="display:none"><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><g fill="var(--accent)"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="15" cy="2" r="1.2"/><circle cx="21" cy="2" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="24" cy="6" r="1.2"/></g><line x1="0" y1="10.5" x2="26" y2="10.5" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/></svg>Sharp only if diffraction is ignored</span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
@@ -476,7 +476,9 @@ function halfW(t,h){
  if(v<=3.0)w=v<=1.1?0.36-0.22*v/1.1:0.14-0.03*(v-1.1)/1.9;
  for(const [u,c,r] of TREE_LOBES){const dv=v-c;if(Math.abs(dv)<r)w=Math.max(w,Math.abs(u)+Math.sqrt(r*r-dv*dv));}
  return w*TREE_K;}
-const SEPM={};
+const SEPM={},HWM={};
+function sideHW(t){if(HWM[t]===undefined){let m=0;for(let h=0;h<=23;h+=0.1)m=Math.max(m,halfW(t,h));HWM[t]=m;}return HWM[t];} // the widest the object's outline gets
+
 function sideSep(a,b){const k=a+'|'+b;if(SEPM[k]===undefined){const hm=Math.min(SOBJS.find(o=>o.id===a).h,SOBJS.find(o=>o.id===b).h);let m=0;for(let h=0;h<=hm;h+=0.05)m=Math.max(m,halfW(a,h)+halfW(b,h));SEPM[k]=m;}return SEPM[k];}
 const sideFree=(so,x)=>!SIDE.some(q=>q!==so&&Math.abs(q.x-x)<sideSep(q.t,so.t)-1e-6);
 function sideSnap(so,t,lo,hi){ // the free spot nearest to t: t itself, or just beyond the edge of an object in the way
@@ -905,20 +907,23 @@ function draw(){
   objH=[];
   const arrows=(X,Y)=>{sx.strokeStyle='#fff';sx.lineWidth=1.5;sx.beginPath();[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>{sx.moveTo(X,Y);sx.lineTo(X+a*5,Y+b*5);sx.moveTo(X+a*5,Y+b*5);sx.lineTo(X+a*3.2-b*1.8,Y+b*3.2+a*1.8);sx.moveTo(X+a*5,Y+b*5);sx.lineTo(X+a*3.2+b*1.8,Y+b*3.2-a*1.8);});sx.stroke();}; // move arrows
   const turn=(X,Y)=>{sx.strokeStyle='#fff';sx.lineWidth=1.5;sx.beginPath();sx.arc(X,Y,3.6,0.4,0.4+4.9);sx.stroke();sx.beginPath();const ex=X+3.6*Math.cos(0.4),ey=Y+3.6*Math.sin(0.4);sx.moveTo(ex,ey);sx.lineTo(ex+3,ey-1.2);sx.moveTo(ex,ey);sx.lineTo(ex+0.6,ey-3.3);sx.stroke();}; // turn arrow
-  const grip=(id,x,y,r,icon)=>{objH.push({id,px:PX(x),py:PY(y)});
-   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(x),PY(y),r,0,7);sx.fill();sx.stroke();if(icon)icon(PX(x),PY(y));sx.lineWidth=1;sx.strokeStyle=ol;}};
+  const clx=(v,a,b)=>Math.max(a,Math.min(b,v)),GMIN=topView?[44,70]:[66,16],clampH=(px,py)=>[clx(px,GMIN[0],W-16),clx(py,GMIN[1],H-16)]; // a handle whose object is partly or wholly out of view is kept inside the view (clear of the axes) so it can still be used
+  const grip=(id,x,y,r,icon)=>{const c=clampH(PX(x),PY(y));objH.push({id,px:c[0],py:c[1],tw:[x,y]}); // tw: where the element really is, so dragging does not make it jump
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(c[0],c[1],r,0,7);sx.fill();sx.stroke();if(icon)icon(c[0],c[1]);sx.lineWidth=1;sx.strokeStyle=ol;}};
   if(topView)TOP.forEach((o,i)=>{
    if(o.k==='wall'){grip('o'+i+'a',o.a[0],o.a[1],4.5);grip('o'+i+'b',o.b[0],o.b[1],4.5);grip('o'+i+'m',(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2,8,arrows);}
    else if(o.k==='building'){grip('o'+i,o.x,o.y,8,arrows);const t=LT(o,-12.5,0);grip('o'+i+'r',t[0],t[1],8,turn);}
    else grip('o'+i,o.x,o.y,4.5);});
   // a small X on every placed object (on the first element of a group) removes it
-  const XR=COARSE?12:7,xbtn=(X,Y,rm)=>{objH.push({id:'x'+objH.length,px:X,py:Y,rm});
+  const XR=COARSE?12:7,xbtn=(X,Y,rm)=>{X=clx(X,GMIN[0]-8,W-XR-4);Y=clx(Y,GMIN[1]-8,H-XR-4);objH.push({id:'x'+objH.length,px:X,py:Y,rm});
    if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(150,35,35,0.92)';sx.beginPath();sx.arc(X,Y,XR,0,7);sx.fill();sx.stroke();
     const e=XR*0.4;sx.lineWidth=COARSE?2.4:1.8;sx.beginPath();sx.moveTo(X-e,Y-e);sx.lineTo(X+e,Y+e);sx.moveTo(X+e,Y-e);sx.lineTo(X-e,Y+e);sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}};
-  if(topView){const seen=new Set();TOP.forEach(o=>{const key=o.g+'#'+(o.n||0);if(seen.has(key))return;seen.add(key);const q=o.k==='wall'?[(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2]:[o.x,o.y],st=((seen.size-1)%2)*(2*XR+4);xbtn(PX(q[0])+(COARSE?32:18),PY(q[1])-(COARSE?32:18)-st,()=>{TOP=TOP.filter(t=>!(t.g===o.g&&(t.n||0)===(o.n||0)));});});}
-  if(!topView)SIDE.forEach((o,i)=>{objH.push({id:'s'+i,px:PX(o.x),py:PY(Gy(o.x))-12});
-   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(PX(o.x),PY(Gy(o.x))-12,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}
-   xbtn(PX(o.x),PY(Gy(o.x))+(COARSE?44:38)+(i%2)*(COARSE?28:22),()=>{const k=SIDE.indexOf(o);if(k>=0)SIDE.splice(k,1);});});
+  if(topView){const seen=new Set();TOP.forEach(o=>{const key=o.g+'#'+(o.n||0);if(seen.has(key))return;seen.add(key);const q=o.k==='wall'?[(o.a[0]+o.b[0])/2,(o.a[1]+o.b[1])/2]:[o.x,o.y],st=((seen.size-1)%2)*(2*XR+4),ac=clampH(PX(q[0]),PY(q[1]));xbtn(ac[0]+(COARSE?32:18),ac[1]-(COARSE?32:18)-st,()=>{TOP=TOP.filter(t=>!(t.g===o.g&&(t.n||0)===(o.n||0)));});});}
+  if(!topView)SIDE.forEach((o,i)=>{ // the move dot sits at the foot of the object; if the object runs past the edge of the view it moves to the middle of the part that is in view
+   const hw=sideHW(o.t),a=Math.max(PX(o.x-hw),GMIN[0]),b=Math.min(PX(o.x+hw),W-16),cx0=PX(o.x),hx=(cx0>=a&&cx0<=b)?cx0:(a<b?(a+b)/2:clx(cx0,GMIN[0],W-16)),hy=clx(PY(Gy(o.x))-12,GMIN[1],H-16);
+   objH.push({id:'s'+i,px:hx,py:hy,tw:[o.x,0]});
+   if(!hideHandles){sx.globalAlpha=1;sx.lineWidth=2;sx.strokeStyle='#fff';sx.fillStyle='rgba(30,40,30,0.8)';sx.beginPath();sx.arc(hx,hy,4.5,0,7);sx.fill();sx.stroke();sx.lineWidth=1;sx.strokeStyle=ol;}
+   xbtn(hx,hy+12+(COARSE?44:38)+(i%2)*(COARSE?28:22),()=>{const k=SIDE.indexOf(o);if(k>=0)SIDE.splice(k,1);});});
  }
  // axis ticks
  const gy=topView?H-28:PY(0); // the distance axis sits on the ground line in the side view and along the bottom edge from above
@@ -1215,7 +1220,7 @@ const HIT_TOUCH=32,HIT_MOUSE=16;
 const tolFor=e=>e.pointerType==='touch'||e.pointerType==='pen'?HIT_TOUCH:HIT_MOUSE;
 sc.addEventListener('pointerdown',e=>{const pc=toCanvas(e),h=pick(pc,tolFor(e));if(!h)return;
  if(h.rm){e.preventDefault();h.rm();draw();return;} // the X on an object removes it
- drag=h.id;{const a=toWorld(pc),b=toWorld([h.px,h.py]);grabOff=[b[0]-a[0],b[1]-a[1]];} // keep the dot under the finger or pointer where it was grabbed
+ drag=h.id;{const a=toWorld(pc),b=h.tw||toWorld([h.px,h.py]);grabOff=[b[0]-a[0],b[1]-a[1]];} // keep the dot under the finger or pointer where it was grabbed
 try{sc.setPointerCapture(e.pointerId);}catch(_){}sc.style.cursor='grabbing';e.preventDefault();});
 sc.addEventListener('pointermove',e=>{const p=toCanvas(e);if(!drag){const hh=pick(p,tolFor(e));sc.style.cursor=hh?(hh.rm?'pointer':'grab'):'default';return;}e.preventDefault();applyDrag(toWorld(p));draw();});
 // on touch screens, stop the page from scrolling when a finger lands on a handle, so the drag moves the handle instead
