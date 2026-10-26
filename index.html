@@ -98,7 +98,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v255</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-25 v256</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus<b class="dast"></b></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness<b class="dast"></b></span><span id="dleg" style="display:none"><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><g fill="var(--accent)"><circle cx="3" cy="2" r="1.2"/><circle cx="9" cy="2" r="1.2"/><circle cx="15" cy="2" r="1.2"/><circle cx="21" cy="2" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="12" cy="6" r="1.2"/><circle cx="18" cy="6" r="1.2"/><circle cx="24" cy="6" r="1.2"/></g><line x1="0" y1="10.5" x2="26" y2="10.5" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/></svg>Sharp only if diffraction is ignored</span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
@@ -456,10 +456,11 @@ document.getElementById('reset').addEventListener('click',()=>{resetAll();draw()
 applySensor(DEF.sensor);setCocMode('sharp');
 setFocusDist(DEFAULT_FOCUS_M);setLens('custom');
 
-const SOBJS=[{id:'plant',name:'Low plant',h:0.30,dm:2,di:6},{id:'boulder',name:'Boulder',h:1.0,dm:5,di:15},{id:'shrub',name:'Shrub',h:6.0,dm:10,di:30},{id:'tree',name:'Tree',h:12.0,dm:15,di:50},{id:'wall',name:'Wall',h:12.0,dm:23,di:75}]; // h: height in metres; dm, di: the distance an object is first placed at, in metres or in feet (the metric and imperial starting distances)
+const BLD_WALL=21.6; // side-view building: 22 m tall in all, the brick facade 21.6 m plus a 0.4 m roof slab; 15 m wide, with the roof projecting 1 m each side
+const SOBJS=[{id:'plant',name:'Low plant',h:0.30,dm:2,di:6},{id:'boulder',name:'Boulder',h:1.0,dm:5,di:15},{id:'shrub',name:'Shrub',h:6.0,dm:10,di:30},{id:'tree',name:'Tree',h:12.0,dm:15,di:50},{id:'wall',name:'Wall',h:12.0,dm:23,di:75},{id:'building',name:'Building',h:22.0,dm:30,di:100}]; // h: height in metres; dm, di: the distance an object is first placed at, in metres or in feet (the metric and imperial starting distances)
 const startDist=o=>imperial?o.di/FT:o.dm;
 let SIDE=[]; // the placed objects in the side view: {t:type, x:distance in metres}; each can be slid nearer or farther
-const SHW={plant:0.3,boulder:0.9,shrub:1.0,tree:0.8,wall:1.0}; // half-width of each object's footprint on the ground, in metres (kept for reference)
+const SHW={plant:0.3,boulder:0.9,shrub:1.0,tree:0.8,wall:1.0,building:8.5}; // half-width of each object's footprint on the ground, in metres (kept for reference)
 const TREE_LOBES=[[-1.18,3.0,0.72],[-0.85,3.55,0.75],[-0.2,3.95,0.8],[0.5,3.95,0.78],[1.05,3.55,0.74],[1.25,3.0,0.7],[0.7,2.72,0.7],[0,2.66,0.72],[-0.65,2.72,0.68],[-0.35,3.35,0.82],[0.4,3.4,0.82]]; // the canopy of the side-view tree: centre x, centre y, radius, in tree units (5 units = 12 m)
 // Objects may not overlap as seen from the side, so how close two can stand depends on their whole outline, not just their feet: a tree's canopy is far
 // wider than its trunk. halfW(type,h) is the half-width of an object's outline at height h (metres); two objects need a gap of at least
@@ -470,6 +471,7 @@ function halfW(t,h){
  if(t==='boulder')return h<=1.0?0.9:0;
  if(t==='shrub')return h<=6.0?1.0:0;
  if(t==='wall')return h<=12.0?1.0:0;
+ if(t==='building')return h<=BLD_WALL?7.5:h<=22.0?8.5:0; // a 15 m wide facade under a flat roof that overhangs 1 m each side
  const v=h/TREE_K;let w=0; // tree: a flared trunk, then the canopy
  if(v<=3.0)w=v<=1.1?0.36-0.22*v/1.1:0.14-0.03*(v-1.1)/1.9;
  for(const [u,c,r] of TREE_LOBES){const dv=v-c;if(Math.abs(dv)<r)w=Math.max(w,Math.abs(u)+Math.sqrt(r*r-dv*dv));}
@@ -768,7 +770,7 @@ function draw(){
   const circ=(cx,cy,r)=>{sx.beginPath();sx.arc(PX(cx),PY(cy),r*kx,0,7);};
   sx.lineWidth=1;sx.strokeStyle=ol;
   const sideObj=so=>{const o=SOBJS.find(q=>q.id===so.t),d=so.x;
-   if(d+2<x0||d-2>x1)return;
+   if(d+(o.id==='building'?9:2)<x0||d-(o.id==='building'?9:2)>x1)return;
    sx.globalAlpha=0.7;
    if(o.id==='plant'){sx.fillStyle='#6f9a3e';
     for(const [u,t,w] of[[-0.10,-0.16,0.035],[-0.05,-0.07,0.035],[0,0,0.04],[0.05,0.08,0.035],[0.10,0.17,0.035]]){
@@ -789,6 +791,30 @@ function draw(){
      sx.fillStyle='#8f8878';sx.fillRect(PX(x0w-0.12),PY(hw+0.1),PX(x1w+0.12)-PX(x0w-0.12),PY(hw-0.25)-PY(hw+0.1)); // coping
      sx.fillStyle='rgba(255,255,255,0.25)';sx.fillRect(PX(x0w-0.12),PY(hw+0.1),PX(x1w+0.12)-PX(x0w-0.12),Math.max(1,(PY(hw)-PY(hw+0.1))));
      sx.strokeRect(PX(x0w),PY(hw),PX(x1w)-PX(x0w),PY(0)-PY(hw));sx.strokeRect(PX(x0w-0.12),PY(hw+0.1),PX(x1w+0.12)-PX(x0w-0.12),PY(hw-0.25)-PY(hw+0.1));});}
+   else if(o.id==='building'){ // a five-storey brick building seen from the front: brick facade, one window per floor in a column up the middle, and a flat roof that projects 1 m each side
+    layered(sx,0.8,sx=>{sx.globalAlpha=1;sx.lineWidth=1;sx.strokeStyle=ol;
+     const x0b=d-7.5,x1b=d+7.5,hb=BLD_WALL,bw=0.6,ch=0.3,gap=0.04,fl=hb/5;
+     sx.fillStyle='#cdc3b0';sx.fillRect(PX(x0b),PY(hb),PX(x1b)-PX(x0b),PY(0)-PY(hb)); // mortar
+     sx.save();sx.beginPath();sx.rect(PX(x0b),PY(hb),PX(x1b)-PX(x0b),PY(0)-PY(hb));sx.clip();
+     const BC=['#a24a35','#b05840','#994431','#b96b4d','#a65540','#8f3f2d'];
+     for(let r=0;r<Math.round(hb/ch);r++){const off=(r%2)*bw/2;
+      for(let k=-1;k<Math.ceil(15/bw)+1;k++){const bx=x0b-off+k*bw;if(bx>=x1b||bx+bw<=x0b)continue;
+       sx.fillStyle=BC[((r*7+k*13+(r>>2)*5)%BC.length+BC.length)%BC.length];
+       sx.fillRect(PX(bx+gap),PY((r+1)*ch-gap),PX(bx+bw-gap)-PX(bx+gap),PY(r*ch+gap)-PY((r+1)*ch-gap));}}
+     for(let f=1;f<5;f++){sx.fillStyle='rgba(205,195,176,0.9)';sx.fillRect(PX(x0b),PY(f*fl+0.12),PX(x1b)-PX(x0b),PY(f*fl-0.12)-PY(f*fl+0.12));} // a pale string course at each floor
+     const g2=sx.createLinearGradient(PX(x0b),0,PX(x1b),0);g2.addColorStop(0,'rgba(255,240,220,0.14)');g2.addColorStop(0.6,'rgba(0,0,0,0)');g2.addColorStop(1,'rgba(0,0,0,0.28)');
+     sx.fillStyle=g2;sx.fillRect(PX(x0b),PY(hb),PX(x1b)-PX(x0b),PY(0)-PY(hb)); // lit on the left, shaded on the right
+     sx.restore();
+     for(let f=0;f<5;f++){const wx0=d-1.2,wx1=d+1.2,wy0=f*fl+1.1,wy1=wy0+2.2; // one window per floor, in a column up the middle
+      sx.fillStyle='#d8d2c2';sx.fillRect(PX(wx0-0.25),PY(wy1+0.3),PX(wx1+0.25)-PX(wx0-0.25),PY(wy0-0.3)-PY(wy1+0.3)); // stone surround
+      const gg=sx.createLinearGradient(0,PY(wy1),0,PY(wy0));gg.addColorStop(0,'#7fa2b8');gg.addColorStop(1,'#34495c');sx.fillStyle=gg;sx.fillRect(PX(wx0),PY(wy1),PX(wx1)-PX(wx0),PY(wy0)-PY(wy1)); // glass
+      sx.strokeStyle='#e8e4d8';sx.lineWidth=Math.max(1,0.08*kx);sx.beginPath();sx.moveTo(PX(d),PY(wy1));sx.lineTo(PX(d),PY(wy0));sx.moveTo(PX(wx0),PY((wy0+wy1)/2));sx.lineTo(PX(wx1),PY((wy0+wy1)/2));sx.stroke(); // frame and glazing bars
+      sx.lineWidth=1;sx.strokeStyle=ol;sx.strokeRect(PX(wx0),PY(wy1),PX(wx1)-PX(wx0),PY(wy0)-PY(wy1));sx.strokeRect(PX(wx0-0.25),PY(wy1+0.3),PX(wx1+0.25)-PX(wx0-0.25),PY(wy0-0.3)-PY(wy1+0.3));}
+     const sg=sx.createLinearGradient(0,PY(hb),0,PY(hb-0.8));sg.addColorStop(0,'rgba(0,0,0,0.30)');sg.addColorStop(1,'rgba(0,0,0,0)');sx.fillStyle=sg;sx.fillRect(PX(x0b),PY(hb),PX(x1b)-PX(x0b),PY(hb-0.8)-PY(hb)); // shadow under the overhanging roof
+     sx.strokeRect(PX(x0b),PY(hb),PX(x1b)-PX(x0b),PY(0)-PY(hb));
+     sx.fillStyle='#8f8878';sx.fillRect(PX(d-8.5),PY(22.0),PX(d+8.5)-PX(d-8.5),PY(hb)-PY(22.0)); // the flat roof slab, 17 m wide
+     sx.fillStyle='rgba(255,255,255,0.25)';sx.fillRect(PX(d-8.5),PY(22.0),PX(d+8.5)-PX(d-8.5),Math.max(1,(PY(21.9)-PY(22.0))));
+     sx.strokeRect(PX(d-8.5),PY(22.0),PX(d+8.5)-PX(d-8.5),PY(hb)-PY(22.0));});}
    else if(o.id==='boulder'){ // an angular, cracked rock: straight facets, lit from the upper left
     const pg=pts=>{sx.beginPath();pts.forEach((q,n)=>n?sx.lineTo(PX(d+q[0]),PY(q[1])):sx.moveTo(PX(d+q[0]),PY(q[1])));sx.closePath();};
     sx.fillStyle='#8a8a84';pg([[-0.88,0],[-0.93,0.26],[-0.72,0.4],[-0.8,0.68],[-0.47,0.74],[-0.3,0.97],[0.02,0.9],[0.2,1.0],[0.42,0.84],[0.62,0.86],[0.84,0.6],[0.92,0.3],[0.86,0]]);sx.fill();sx.stroke();
@@ -826,7 +852,7 @@ function draw(){
     LB.forEach(([u,v,r])=>{soft(X(u-0.25*r),Y(v+0.3*r),R(r*0.7),'rgba(210,240,143,0.40)');});   // light catching each lobe, upper left
     sx.restore();});}
    sx.globalAlpha=1;};
-  if(!topView)SIDE.forEach(so=>{if(so.x+2<x0||so.x-2>x1)return;sx.save();sx.translate(0,PY(Gy(so.x))-PY(0));sideObj(so);sx.restore();}); // objects stand on the ground, flat or uneven
+  if(!topView)SIDE.forEach(so=>{if(so.x+(so.t==='building'?9:2)<x0||so.x-(so.t==='building'?9:2)>x1)return;sx.save();sx.translate(0,PY(Gy(so.x))-PY(0));sideObj(so);sx.restore();}); // objects stand on the ground, flat or uneven
   const poly=pts=>{sx.beginPath();pts.forEach((q,n)=>n?sx.lineTo(PX(q[0]),PY(q[1])):sx.moveTo(PX(q[0]),PY(q[1])));sx.closePath();};
   const ring=(cx,cy,rx,ry,ph)=>{const pts=[];for(let q=0;q<28;q++){const a=q/28*Math.PI*2,m=1+0.10*Math.sin(5*a+ph)+0.05*Math.sin(9*a+2*ph);pts.push([cx+rx*m*Math.cos(a),cy+ry*m*Math.sin(a)]);}return pts;};
   // x is distance in front of the camera and y is distance to the left of it, both in metres; objects are only drawn from above
@@ -1251,7 +1277,7 @@ const TIPS={
  fov:'Field of view is determined by the chosen focal length and sensor. The teal shading for the acceptably sharp area extends beyond it, to the edge of the lens\'s image circle (the lens forms an image beyond the sensor, and lens shift moves the sensor within it). The shading can be limited to the field of view using a check box under Additional controls.',
  ground:'Choose flat, level ground, or ground that is uneven and slopes down or up. Uneven ground is level for the first metre from the lens and then has an overall slope of roughly 6%, with local slopes that vary and sometimes run against the trend for a few metres. The surface is the same every time. "Ground in acceptably sharp focus" is the part of the surface that lies within the limits of acceptable sharpness, and only where the lens can see it: ground hidden behind a rise is not counted. Distances are measured straight along the level from the camera, not along the slope. Auto Tilt/Focus and the point where the plane of focus meets the ground follow the surface too.',
  hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is 0 degrees. Use the button to focus automatically at the hyperfocal distance.',
- objs:()=>T()?'Use the Add buttons to place background objects in the view. Pressing a button again adds another of the same kind, placed to the right of the ones already there. Once placed, drag the dark dot on any object to move it. Each tree and shrub moves on its own. The wall is 20 m (about 66 ft) long and 1 m (about 3 ft) thick: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. To remove an object, click or touch the small red X beside it. Objects can touch but cannot overlap.':'Use the Add buttons to add objects of different sizes and heights to the view. The first of each kind is placed at a standard distance from the camera (the low plant, boulder, shrub, tree and wall start at '+(imperial?'6, 15, 30, 50 and 75 ft':'2, 5, 10, 15 and 23 m')+'); pressing a button again adds another, bumped to the right to the nearest free spot. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. To remove an object, click or touch the small red X beside it. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it.',
+ objs:()=>T()?'Use the Add buttons to place background objects in the view. Pressing a button again adds another of the same kind, placed to the right of the ones already there. Once placed, drag the dark dot on any object to move it. Each tree and shrub moves on its own. The wall is 20 m (about 66 ft) long and 1 m (about 3 ft) thick: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. To remove an object, click or touch the small red X beside it. Objects can touch but cannot overlap.':'Use the Add buttons to add objects of different sizes and heights to the view. The first of each kind is placed at a standard distance from the camera (the low plant, boulder, shrub, tree, wall and building start at '+(imperial?'6, 15, 30, 50, 75 and 100 ft':'2, 5, 10, 15, 23 and 30 m')+'); pressing a button again adds another, bumped to the right to the nearest free spot. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. To remove an object, click or touch the small red X beside it. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it.',
  auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable focus. Other settings are unchanged. Not available in Tilt Left/Right view.',
  hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees.',
  view:'Choose between a side profile (Tilt Up/Down) or a top-down view (Tilt Left/Right). Diagonal tilt is not available. Changing the view also resets all settings and background objects to their defaults.',
