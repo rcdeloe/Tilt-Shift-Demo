@@ -18,10 +18,32 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 "Atkinson Hype
  .wrap aside{order:1}.wrap .panel.objs{order:2}.wrap .rightcol>.panel{order:3}}
 .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .hdrbtns{display:flex;align-items:center;gap:10px;flex:none}
+.lrnread{display:flex;flex-wrap:nowrap;white-space:nowrap;justify-content:flex-end;gap:0 3.5vw;font-size:min(calc(13px + 1pt),3.5vw);color:#000;margin:8px 4px 0}
+.lrnread:empty{display:none}
+.legtog{display:none;align-items:center;gap:8px;width:100%;margin:10px 0 0;padding:9px 12px;font:inherit;font-weight:600;font-size:14px;color:var(--accent);background:var(--bg);border:1px solid var(--accent);border-radius:8px;cursor:pointer;text-align:left}
+.legtog .chev{display:inline-block;width:1em;font-size:15px}
+@media(max-width:880px){.legtog{display:flex}.panel.legoff .legend,.panel.legoff .readoutw{display:none}}
 .modesw{display:inline-grid;grid-template-columns:1fr 1fr;border:1px solid var(--accent);border-radius:999px;overflow:hidden;flex:none}
 .modesw button{font:inherit;font-weight:600;font-size:13px;padding:5px 12px;border:0;background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap}
 .modesw button.on{background:var(--accent);color:var(--panel)}
 .modesw button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+body:not(.learner) #main-controls{display:flex;flex-direction:column}
+body:not(.learner) #main-controls>.row:has(#r_fl){order:1}
+body:not(.learner) #main-controls>.row:has(#r_ap){order:2}
+body:not(.learner) #main-controls>.row:has(#r_focus){order:3}
+body:not(.learner) #main-controls>.row:has(#r_tilt){order:4}
+body:not(.learner) #main-controls>.row:has(#r_shift){order:5}
+body:not(.learner) #main-controls>.row:has(#r_h){order:6}
+body:not(.learner) #main-controls>.row:has(#r_cam){order:7}
+details.addl>summary{font-weight:700}
+body.learner #main-controls{display:flex;flex-direction:column}
+body.learner #main-controls>.row:has(#r_ap){order:1}
+body.learner #main-controls>.row:has(#r_focus){order:2}
+body.learner #main-controls>.row:has(#r_tilt){order:3}
+body.learner #main-controls>.row:has(#r_shift){order:4}
+body.learner #main-controls>.row:has(#r_h){order:5}
+body.learner #main-controls>.row:has(#r_cam){order:6}
+body.learner #main-controls>.bw{order:7}
 body:not(.learner) .legend .ib:not([data-tip="shade"]),body.learner .legend .ib,body.learner .lower,body.learner details.addl,body.learner .bw:has(>.viewsw:not(.unitsw)),body.learner .bw:has(>#link-btn),body.learner #lens-note,body.learner .row:has(#n_fl),body.learner .readoutw,body.learner .legend>span:has(#hyp-leg){display:none!important}
 .helpbtn{font:inherit;font-weight:600;font-size:13px;padding:5px 12px;border:1px solid var(--accent);border-radius:999px;background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex:none}
 .helpbtn[aria-pressed=true]{background:var(--accent);color:var(--panel)}
@@ -89,6 +111,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-variant-numeric:tabular-
 .objs th[scope=colgroup]{padding-bottom:0;border-bottom:1px solid var(--line)}
 .objs input{width:18px;height:18px;accent-color:var(--accent);vertical-align:middle;cursor:pointer}
 .objs label{cursor:pointer}
+@media (pointer:coarse){input[type=range]{pointer-events:none}} /* touch screens: the browser never handles a slider touch, so swipes always scroll the page; the script below moves a slider on a deliberate sideways drag */
 input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls the page */
 .objbtn{margin:0!important;font-size:13px!important;padding:5px 10px!important}
 #objs-side,#objs-body{display:flex;flex-wrap:wrap;gap:8px}
@@ -103,10 +126,12 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-27 v0.278</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-28 v0.294</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
-   <div class="legend"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness</span><span id="shade-leg"><i style="display:inline-block;width:26px;height:10px;margin-right:6px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg,var(--accent),transparent);opacity:0.65" aria-hidden="true"></i><span id="shade-txt">Sharpness shading, including diffraction</span></span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
+   <div id="lrn-read" class="lrnread" aria-live="polite"></div>
+   <button type="button" id="leg-tog" class="legtog" aria-expanded="false" aria-controls="leg-body"><span class="chev" aria-hidden="true">▸</span><span id="leg-tog-txt">Show legend</span></button>
+   <div class="legend" id="leg-body"><span><i class="sw" style="background:var(--accent2)"></i>Plane of focus</span><span><svg width="26" height="12" viewBox="0 0 26 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M13 1.5v9M8.5 6h9" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Focus distance</span><span class="gl"><i class="sw" style="background:var(--accent);height:9px"></i>Ground in acceptably sharp focus</span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--accent)" stroke-width="2"/></svg>Limits of acceptable sharpness</span><span id="shade-leg"><i style="display:inline-block;width:26px;height:10px;margin-right:6px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg,var(--accent),transparent);opacity:0.65" aria-hidden="true"></i><span id="shade-txt">Sharpness shading, including diffraction</span></span><span><svg width="14" height="12" viewBox="0 0 14 12" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><path d="M7 0L0 12H14Z" fill="var(--hyper)"/></svg><span id="hyp-leg">Hyperfocal distance</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="6 5"/></svg><span id="fov-leg">Field of view</span></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/></svg>Hinge line and Hinge<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-left:6px" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--green)"/></svg></span><span><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 10"/></svg>Lens plane</span><span id="cax-leg"><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" opacity="0.9"/></svg><span id="cax-txt">Camera axis</span></span><span id="lax-leg"><svg width="26" height="6" viewBox="0 0 26 6" style="vertical-align:middle;margin-right:6px" aria-hidden="true"><line x1="0" y1="3" x2="26" y2="3" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.5 4" opacity="0.8"/></svg>Lens axis</span></div>
    <dl id="out" class="readout" aria-live="polite"></dl>
   </div>
   <div class="lower">
@@ -274,7 +299,7 @@ function syncFocus(fromSlider){
  document.getElementById('n_focus').value=V.focus>100?'∞ +'+pastInf(V.focus).toFixed(2)+' mm':isFinite(u)?fmtD(u).replace(uL(),''):'∞';
 }
 function setFocusDist(u){V.focus=distToPct(u);syncFocus();}
-let focusSide=0,lastFocusSide=1,tiltRawPrev=null,tiltDir=0,PENDING=[],view=null,TA=[],tiltAnchor=null,handles=[],drag=null,grabOff=[0,0];
+let lastCrossSide=1,focusSide=0,lastFocusSide=1,tiltRawPrev=null,tiltDir=0,PENDING=[],view=null,TA=[],tiltAnchor=null,handles=[],drag=null,grabOff=[0,0];
 const DEFAULT_FOCUS_M=5;
 function applySensor(i){
  i=Math.max(0,Math.min(SENSORS.length-1,Math.round(i)));const s=SENSORS[i];
@@ -344,11 +369,12 @@ function pdfFromJpeg(jpg,w,h){
 }
 // Screenshot: the live display plus the settings that produced it, saved as a JPEG
 async function takeScreenshot(fmt){
+ const legPanel=document.querySelector('.legend').parentNode,legWasOff=legPanel.classList.contains('legoff');legPanel.classList.remove('legoff'); // the screenshot always carries the legend, even when it is folded away on a phone
  forceDpr=3400/(view.W+32); // 8.5 inches wide at 400 pixels per inch
  hideHandles=true;noHyp=!(isFinite(hyperM())&&Math.abs(V.focus-distToPct(hyperM()))<1e-6);draw(); // the hyperfocal triangle appears only if focus has been set to the hyperfocal distance
  const k=sc.width/view.W,pad=16*k,iw=sc.width,ih=sc.height,titleH=0,cellH=36*k,footH=26*k,rows=3;
  // the legend as currently shown, laid out in rows under the picture
- const LG=[['Plane of focus','--accent2',3,[]],['Ground in acceptably','--accent',9,'block'],['Limits of acceptable','--accent',2,[]],['Sharpness shading','--accent',0,'grad'],['Hyperfocal','--hyper',0,'tri'],['Field of view','--orange',1.5,[6,5]],['Hinge','--green',2,[7,5]],['Lens axis','--muted',1.5,[1.5,4]],['Lens plane','--muted',1.5,[2,10]]];
+ const LG=[['Plane of focus','--accent2',3,[]],['Focus distance','--accent2',2,'plus'],['Ground in acceptably','--accent',9,'block'],['Limits of acceptable','--accent',2,[]],['Sharpness shading','--accent',0,'grad'],['Hyperfocal','--hyper',0,'tri'],['Field of view','--orange',1.5,[6,5]],['Hinge','--green',2,[7,5]],['Camera/Lens axis','--muted',1.5,[7,3,1.5,3]],['Camera axis','--muted',1.5,[7,3,1.5,3]],['Lens axis','--muted',1.5,[1.5,4]],['Lens plane','--muted',1.5,[2,10]]];
  const lgFont=`${12*k}px system-ui,sans-serif`,mctx=document.createElement('canvas').getContext('2d');mctx.font=lgFont;
  const lgItems=[...document.querySelectorAll('.legend > span')].filter(e=>getComputedStyle(e).display!=='none'&&!(noHyp&&e.textContent.trim().startsWith('Hyperfocal'))).map(e=>{const t=[...e.childNodes].filter(n=>!(n.classList&&n.classList.contains('ib'))).map(n=>n.textContent).join('').trim().replace(/^(Field of view)\s*\(.*\)$/,'$1'),d=LG.find(q=>t.startsWith(q[0]));return d?{t,d,w:30*k+mctx.measureText(t).width+(t.startsWith('Hinge')?16*k:0)}:null;}).filter(Boolean);
  const lgRowH=22*k,lgGap=18*k;let lgX=0,lgRows=1;lgItems.forEach(it=>{if(lgX>0&&lgX+it.w>iw){lgRows++;lgX=0;}it.row=lgRows-1;it.x=lgX;lgX+=it.w+lgGap;});
@@ -376,11 +402,12 @@ async function takeScreenshot(fmt){
  g.textBaseline='top';g.textAlign='left';
  [[p1y,p1h]].forEach(([y,h])=>{g.beginPath();g.roundRect(pad,y,iw+2*ip,h,14*k);g.fillStyle=css('--panel');g.fill();g.strokeStyle=line;g.lineWidth=k;g.stroke();});
  g.save();g.beginPath();g.roundRect(cx,p1y+ip,iw,ih,8*k);g.clip();g.drawImage(sc,cx,p1y+ip);g.restore();
- hideHandles=false;noHyp=false;forceDpr=0;draw();
+ hideHandles=false;noHyp=false;forceDpr=0;if(legWasOff)legPanel.classList.add('legoff');draw();
  lgItems.forEach(it=>{const [,col,w,sty]=it.d,x=cx+it.x,y=p1y+ip+ih+8*k+it.row*lgRowH+8*k;
   g.save();g.strokeStyle=css(col);g.fillStyle=css(col);g.lineWidth=w*k;
   if(sty==='block'){g.fillRect(x,y-4.5*k,26*k,9*k);}
   else if(sty==='grad'){const gr=g.createLinearGradient(x,0,x+26*k,0),h=css(col),rgba=a=>'rgba('+parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16)+','+a+')';gr.addColorStop(0,rgba(0.65));gr.addColorStop(1,rgba(0.03));g.fillStyle=gr;g.fillRect(x,y-5*k,26*k,10*k);}
+  else if(sty==='plus'){g.setLineDash([]);g.lineCap='round';g.beginPath();g.moveTo(x+13*k,y-5.5*k);g.lineTo(x+13*k,y+5.5*k);g.moveTo(x+13*k-5.5*k,y);g.lineTo(x+13*k+5.5*k,y);g.stroke();}
   else if(sty==='tri'){g.beginPath();g.moveTo(x+13*k,y-6*k);g.lineTo(x+6*k,y+6*k);g.lineTo(x+20*k,y+6*k);g.closePath();g.fill();}
   else{g.setLineDash(sty.map(v=>v*k));g.lineCap=sty[0]<2?'round':'butt';g.beginPath();g.moveTo(x,y);g.lineTo(x+26*k,y);g.stroke();}
   g.restore();g.fillStyle=muted;g.font=lgFont;g.textBaseline='middle';g.fillText(it.t,x+32*k,y);if(it.t.startsWith('Hinge')){g.fillStyle=css('--green');g.beginPath();g.arc(x+32*k+mctx.measureText(it.t).width+11*k,y,5*k,0,7);g.fill();}g.textBaseline='top';});
@@ -590,7 +617,7 @@ function model(){
  updateShiftLimit();
  const D=Math.PI/180,f=V.fl;
  const th=-V.tilt*D,ph=V.cam*D,ct=Math.cos(th);
- // Zc: distance (mm) from the lens along the lens axis at which the plane of focus crosses it
+ // Zc: distance (mm) from the lens along the camera axis (the sensor normal) at which the plane of focus crosses it
  const zd=pctToDist(V.focus)*1000,Zc=zd<0?zd:Math.max(zd,1.1*f/ct);
  const j=isFinite(Zc)?f*Zc/(Zc*ct-f):f/ct;
  // top-down view: the same geometry turned on its side. Left/right replaces up/down (positive is to the right), the sensor's width
@@ -719,6 +746,7 @@ function draw(){
   const R=(x1-x0)*3,N=600,pts=[];for(let i=0;i<=N;i+=6){const t=-R+2*R*i/N,x=A[0]+d[0]*t,y=A[1]+d[1]*t;if(x>x0+(x1-x0)*0.06&&x<x1-(x1-x0)*0.06&&y>y0+(y1-y0)*0.06&&y<y1-(y1-y0)*0.06&&(!wedge||inW(x,y)))pts.push({u:PX(x),v:PY(y),up:topView?x:y,left:topView?y:-x,wx:x,wy:y});}
   if(!pts.length)return wedge?linePick(A,d,ord,false):null;pts.forEach(q=>{q.al=ord==='x'?q.wx:ord==='y'?q.wy:q.up+1e-4*q.left;});return{pts,hi:Math.max(...pts.map(q=>q.al)),lo:Math.min(...pts.map(q=>q.al))};};
  const pointAt=(lp,frac)=>{const tg=lp.hi-frac*(lp.hi-lp.lo);return lp.pts.reduce((m,q)=>Math.abs(q.al-tg)<Math.abs(m.al-tg)?q:m);};
+ {const same=Math.abs(+V.tilt)<1e-9;document.getElementById('cax-txt').textContent=same?'Camera/Lens axis':'Camera axis';document.getElementById('lax-leg').style.display=same?'none':'';} // with no tilt the two axes are one line
  document.getElementById('shade-txt').textContent=LEARN?'Sharpness shading':diffOn?'Sharpness shading, including diffraction':'Sharpness shading, defocus only';
  if(isFinite(hyperM()))document.getElementById('hyp-leg').textContent='Hyperfocal distance ('+fmtD(hyperM())+')';{const hb=document.getElementById('hyper-btn'),tl=Math.abs(+V.tilt)>=1e-9;hb.disabled=tl||!isFinite(hyperM());hb.title=tl?'Available only when lens tilt is 0':'';}document.getElementById('hyp-leg').parentElement.style.display=Math.abs(+V.tilt)<1e-9&&isFinite(hyperM())?'':'none'; // hyperfocal distance only means something with no tilt (with field curvature it is the usual flat-field value, on the lens axis)
  view={x0,x1,y0,y1,W:RW,H:RH,vw:W,vh:H,top:topView};
@@ -942,7 +970,12 @@ function draw(){
   sx.beginPath();sx.moveTo(PX(0),PY(M.h));sx.lineTo(PX(wx),PY(wy));sx.stroke();}
  sx.setLineDash([]);
  // lens axis: the line through the lens centre at right angles to the lens, which tilts with it (dash-dot)
- {const far=(x1-x0)*40,a=cw(-M.st*far,-M.ct*far),b=cw(M.st*far,M.ct*far);
+ // camera axis: the line straight out from the middle of the sensor (the sensor normal); focus distance is measured along it, and a small cross marks where the plane of focus crosses it
+ {const far=(x1-x0)*40,a=cw(0,-far),b=cw(0,far);
+  sx.save();sx.setLineDash([7,3,1.5,3]);sx.lineCap='round';sx.strokeStyle=muted;sx.globalAlpha=0.7;sx.lineWidth=1.3;sx.beginPath();sx.moveTo(PX(a[0]),PY(a[1]));sx.lineTo(PX(b[0]),PY(b[1]));sx.stroke();sx.restore();
+  {const hh=Math.hypot(b[0],b[1]-M.h),lp=linePick([0,M.h],[b[0]/hh,(b[1]-M.h)/hh],'x');if(lp)PENDING.push({id:'caxis',lp,frac:0.3});}
+  if(isFinite(M.Zc)&&M.Zc>0){const q=cw(0,M.Zc/1000),qx=PX(q[0]),qy=PY(q[1]);if(qx>70&&qx<W-6&&qy>6&&qy<H-6){sx.save();sx.setLineDash([]);sx.lineCap='round';for(const [col,lw] of[['rgba(255,255,255,0.9)',4.5],[acc2,1.8]]){sx.strokeStyle=col;sx.lineWidth=lw;sx.beginPath();sx.moveTo(qx-5.5,qy);sx.lineTo(qx+5.5,qy);sx.moveTo(qx,qy-5.5);sx.lineTo(qx,qy+5.5);sx.stroke();}sx.restore();}}}
+ if(Math.abs(+V.tilt)>=1e-9){const far=(x1-x0)*40,a=cw(-M.st*far,-M.ct*far),b=cw(M.st*far,M.ct*far);
   sx.save();sx.setLineDash([1.5,4]);sx.lineCap='round';sx.strokeStyle=muted;sx.globalAlpha=0.6;sx.lineWidth=1.3;sx.beginPath();sx.moveTo(PX(a[0]),PY(a[1]));sx.lineTo(PX(b[0]),PY(b[1]));sx.stroke();sx.restore();{const hh=Math.hypot(b[0],b[1]-M.h),lp=linePick([0,M.h],[b[0]/hh,(b[1]-M.h)/hh],'x');if(lp)PENDING.push({id:'laxis',lp,frac:0.15});}}
  // the part of the picture the lens forms an image of: a wedge from the lens out to the edge of its image circle. Lines are solid inside it, dashed beyond.
  const wedgeClip=()=>{const fp=[[PX(0),PY(M.h)]],fr=(x1-x0)*40;for(const s2 of[-1,1]){const Xs=s2*M.rc,len=Math.hypot(Xs,M.j),[wx,wy]=cw(-Xs/len*fr,M.j/len*fr);fp.push([PX(wx),PY(wy)]);}sx.beginPath();fp.forEach((q,n)=>n?sx.lineTo(q[0],q[1]):sx.moveTo(q[0],q[1]));sx.closePath();sx.clip();};
@@ -1057,6 +1090,12 @@ function draw(){
     lastFocusSide=Math.sign(tq-th)||lastFocusSide;
     const sd=focusSide||lastFocusSide,tc=sd>0?Math.max(tq,th+30):Math.min(tq,th-30);
     if(tc!==tq)q=[sA[0]+tc*ux,sA[1]+tc*uy];}
+   if(info.A&&isFinite(M.Zc)&&M.Zc>0){ // the red dot also keeps clear of the + that marks where the plane crosses the camera axis, jumping over it if dragged onto it
+    const cq=cw(0,M.Zc/1000),ux=info.dx,uy=-info.dy,sA=[PX(info.A[0]),PY(info.A[1])],tcx=(PX(cq[0])-sA[0])*ux+(PY(cq[1])-sA[1])*uy,t2=(q[0]-sA[0])*ux+(q[1]-sA[1])*uy,R=18;
+    if(Math.abs(t2-tcx)<R){let sg=Math.sign(t2-tcx)||lastCrossSide;
+     const at=g=>[sA[0]+(tcx+g*R)*ux,sA[1]+(tcx+g*R)*uy],ok=z=>z[0]>=76&&z[0]<=W-20&&z[1]>=16&&z[1]<=H-16;
+     if(!ok(at(sg)))sg=-sg;lastCrossSide=sg;q=at(sg);}
+    else lastCrossSide=Math.sign(t2-tcx)||lastCrossSide;}
    return(q[0]>=76&&q[0]<=W-20&&q[1]>=16&&q[1]<=H-16)?q:null;};
   const fp=(focusAnchor&&footOf(focusAnchor))||footOf(defAnchor);
   if(fp&&!hideHandles){sx.lineWidth=3;sx.strokeStyle=bg;sx.fillStyle=acc2;sx.beginPath();sx.arc(fp[0],fp[1],9,0,7);sx.fill();sx.stroke();}
@@ -1087,9 +1126,11 @@ function draw(){
      const sg=Math.abs(t-tf)>8?Math.sign(t-tf):s0;
      let t2=Math.min(hi,Math.max(lo,tf+sg*44));if(Math.abs(t2-tf)<44)t2=Math.min(hi,Math.max(lo,tf-sg*44));
      t=t2;}
-    if(th!==null&&isFinite(th)){ // the diamond never sits on the hinge dot: dragged onto it, it jumps to the side the pointer is on, and to the far side once the pointer crosses over
-     const R=30,clear=x=>Math.abs(x-tf)>=43.9&&Math.abs(x-th)>=R-0.1;
-     if(!clear(t)){const c=[tf-44,tf+44,th-R,th+R].map(x=>Math.min(hi,Math.max(lo,x))).filter(clear);
+    let tcx=null; // and where the + that marks the focus distance lies along the plane
+    if(isFinite(M.Zc)&&M.Zc>0){const cq=cw(0,M.Zc/1000);tcx=(PX(cq[0])-sA[0])*ux+(PY(cq[1])-sA[1])*uy;}
+    {const obs=[];if(th!==null&&isFinite(th))obs.push([th,30]);if(tcx!==null&&isFinite(tcx))obs.push([tcx,18]); // the diamond never sits on the hinge dot or on the +: dragged onto one, it jumps to the side the pointer is on, and to the far side once the pointer crosses over
+     const clear=x=>Math.abs(x-tf)>=43.9&&obs.every(([o,R])=>Math.abs(x-o)>=R-0.1);
+     if(obs.length&&!clear(t)){const c=[tf-44,tf+44,...obs.flatMap(([o,R])=>[o-R,o+R])].map(x=>Math.min(hi,Math.max(lo,x))).filter(clear);
       if(c.length)t=c.reduce((a,b)=>Math.abs(b-traw)<Math.abs(a-traw)?b:a);}}
     tp=[sA[0]+t*ux,sA[1]+t*uy];
    }
@@ -1152,7 +1193,7 @@ function draw(){
  const N=4000,X0=0.02,X1=GMODE?100:5000; // on uneven ground the analysis stops at 100 m, the widest scene
  // on uneven ground a stretch counts only if the lens can see it: its direction from the lens must not be lower than that of any nearer ground (nothing hidden behind a rise)
  const visA=GMODE?(()=>{const v=new Array(N);let mx=-Infinity;for(let i=0;i<N;i++){const x=X0*Math.pow(X1/X0,i/(N-1)),e=Math.atan2(Gy(x)-M.h,x);v[i]=e>=mx-1e-9;if(e>mx)mx=e;}return v;})():null;
- const xs=i=>X0*Math.pow(X1/X0,i/(N-1)),okAt=x=>{if(!topView){if(GMODE){const ii=Math.max(0,Math.min(N-1,Math.round(Math.log(x/X0)/Math.log(X1/X0)*(N-1))));return visA[ii]&&blurAt(x,Gy(x))<=M.c;}return blurAt(x,0)<=M.c;}const w=cw(0,x);return blurAt(w[0],w[1])<=M.c;},spans=[]; // from above, 'ground' becomes the lens axis
+ const xs=i=>X0*Math.pow(X1/X0,i/(N-1)),okAt=x=>{if(!topView){if(GMODE){const ii=Math.max(0,Math.min(N-1,Math.round(Math.log(x/X0)/Math.log(X1/X0)*(N-1))));return visA[ii]&&blurAt(x,Gy(x))<=M.c;}return blurAt(x,0)<=M.c;}const w=cw(0,x);return blurAt(w[0],w[1])<=M.c;},spans=[]; // from above, 'ground' becomes the camera axis
  const edge=(lo,hi)=>{for(let k=0;k<40;k++){const m=Math.sqrt(lo*hi);if(okAt(m)===okAt(lo))lo=m;else hi=m;}return Math.sqrt(lo*hi);};
  let cur=null,prev=okAt(xs(0));if(prev)cur=[xs(0),xs(0)];
  for(let i=1;i<N;i++){const x=xs(i),ok=okAt(x);
@@ -1161,16 +1202,20 @@ function draw(){
   else if(ok&&cur)cur[1]=x;
   prev=ok;}
  if(prev&&cur&&!spans.includes(cur))spans.push(cur);
- row(topView?'Sharp along lens axis':'Ground in focus',spans.length?spans.map(s=>`${fmt(s[0])} to ${(s===cur&&prev)?(GMODE?fmt(X1)+' or more':'∞'):fmt(s[1])}`).join('<br>'):'none');
- { // size of the frame where the plane of focus crosses the lens axis: the gap between the two edges of the field of view, measured straight across through that point
+ row(topView?'Sharp along camera axis':'Ground in focus',spans.length?spans.map(s=>`${fmt(s[0])} to ${(s===cur&&prev)?(GMODE?fmt(X1)+' or more':'∞'):fmt(s[1])}`).join('<br>'):'none');
+ { // size of the frame where the plane of focus crosses the camera axis: the gap between the two edges of the field of view, measured straight across through that point
   let fr='n/a';
   if(isFinite(M.Zc)&&M.Zc>0){const d=M.Zc/1000,F=cw(0,d),ys=[-1,1].map(s2=>{const Xs=s2*M.S/2-M.shift,den=M.j*M.cp-Xs*M.sp;return den>1e-9?M.h+(F[0])*(-M.j*M.sp-Xs*M.cp)/den:NaN;});
    if(ys.every(isFinite))fr=fmtD(Math.abs(ys[1]-ys[0]));}
   row(topView?'Frame width at focus':'Frame height at focus',fr);}
  row('Field curvature',['None','Mild','Strong'][curvLvl]);
  if(diffOn)row('Airy disc',(M.airy*1000).toFixed(1)+' µm, '+(M.airy>=M.c?'larger than':'smaller than')+' the circle of confusion ('+(M.c*1000).toFixed(0)+' µm)');
- row('Plane crosses lens axis',M.Zc<0?'behind lens (past infinity)':isFinite(M.Zc)?fmtD(M.Zc/1000):'∞');
- document.getElementById('out').innerHTML=(topView?['Sharp along lens axis','Plane crosses lens axis','Horizontal field of view','Frame width at focus','Field curvature','Airy disc']:['Plane first meets ground','Vertical field of view','Frame height at focus','Field curvature','Airy disc']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
+ row('Plane crosses camera axis',M.Zc<0?'behind lens (past infinity)':isFinite(M.Zc)?fmtD(M.Zc/1000):'∞');
+ document.getElementById('out').innerHTML=(topView?['Sharp along camera axis','Plane crosses camera axis','Horizontal field of view','Frame width at focus','Field curvature','Airy disc']:['Plane first meets ground','Vertical field of view','Frame height at focus','Field curvature','Airy disc']).filter(k=>k in rows).map(k=>`<div><dt>${k}</dt><dd>${rows[k]}</dd></div>`).join('');
+ {const rd=document.getElementById('lrn-read'); // Aperture, tilt and focus distance in a line under the view, above the legend
+  {const zc=M.Zc<0?Infinity:M.Zc/1000;
+   rd.innerHTML=`<span><b>f/${V.ap}</b></span>`+[['Tilt',tiltTxt(V.tilt)+'°'],['Focus distance',V.focus>100?'∞':isFinite(zc)?fmtD(zc):'∞']].map(([l,v])=>`<span><b>${l}:</b> ${v}</span>`).join('');}
+  }
  placeSceneTips();
 }
 // dragging the handles
@@ -1247,12 +1292,21 @@ sc.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.to
  if(pick(toCanvas(t),HIT_TOUCH))e.preventDefault();},{passive:false});
 sc.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 // touch screens: a slider moves only when the finger lands on its thumb, so a swipe or tap that starts elsewhere on the track scrolls the page and leaves the slider alone
-{let blockEl=null,startVal=null;
- document.addEventListener('pointerdown',e=>{blockEl=null;const r=e.target;if(!(r instanceof HTMLInputElement&&r.type==='range')||e.pointerType==='mouse')return;
-  const b=r.getBoundingClientRect(),mn=+r.min,mx=+r.max,f=mx>mn?(+r.value-mn)/(mx-mn):0,tx=b.left+11+f*(b.width-22);
-  if(Math.abs(e.clientX-tx)>30){blockEl=r;startVal=r.value;}},true);
- document.addEventListener('input',e=>{if(blockEl&&e.target===blockEl){e.stopImmediatePropagation();blockEl.value=startVal;}},true);
- ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,()=>{blockEl=null;},true));}
+{ // touch screens: sliders ignore the browser's own touch handling (see the CSS). A slider moves only when a finger lands near its thumb and then travels mainly sideways; a tap or any other swipe scrolls the page and leaves it alone.
+ const COARSE_T=matchMedia('(pointer:coarse)').matches;
+ let tr=null;
+ const thumbX=(r,b)=>{const mn=+r.min,mx=+r.max,f=mx>mn?(+r.value-mn)/(mx-mn):0;return b.left+11+f*(b.width-22);};
+ document.addEventListener('touchstart',e=>{tr=null;if(!COARSE_T||e.touches.length!==1)return;const t=e.touches[0];
+  for(const r of document.querySelectorAll('input[type=range]')){if(r.disabled||!r.offsetParent)continue;const b=r.getBoundingClientRect();
+   if(t.clientY<b.top-14||t.clientY>b.bottom+14||t.clientX<b.left-10||t.clientX>b.right+10)continue;
+   if(Math.abs(t.clientX-thumbX(r,b))<=30){tr={r,x0:t.clientX,y0:t.clientY,intent:null};break;}}},{passive:true});
+ document.addEventListener('touchmove',e=>{if(!tr||e.touches.length!==1)return;const t=e.touches[0];
+  if(!tr.intent){const dx=Math.abs(t.clientX-tr.x0),dy=Math.abs(t.clientY-tr.y0);if(dx>8&&dx>=1.5*dy)tr.intent='h';else if(dy>8){tr=null;return;}else return;}
+  if(e.cancelable)e.preventDefault();
+  const r=tr.r,b=r.getBoundingClientRect(),mn=+r.min,mx=+r.max,st=+r.step||0,f=Math.min(1,Math.max(0,(t.clientX-b.left-11)/(b.width-22)));
+  let v=mn+f*(mx-mn);if(st>0)v=mn+Math.round((v-mn)/st)*st;v=Math.min(mx,Math.max(mn,v));
+  if(String(v)!==r.value){r.value=v;r.dispatchEvent(new Event('input',{bubbles:true}));}},{passive:false});
+ ['touchend','touchcancel'].forEach(n=>document.addEventListener(n,()=>{if(tr&&tr.intent==='h')tr.r.dispatchEvent(new Event('change',{bubbles:true}));tr=null;},{passive:true}));}
 const endDrag=()=>{drag=null;focusSide=0;sc.style.cursor='default';};
 sc.addEventListener('pointerup',endDrag);sc.addEventListener('pointercancel',endDrag);
 if(typeof window!=='undefined')window.addEventListener('resize',draw);
@@ -1290,15 +1344,25 @@ document.getElementById('un-si').addEventListener('click',()=>setUnits(false));
 document.getElementById('un-imp').addEventListener('click',()=>setUnits(true));
 document.getElementById('vw-side').addEventListener('click',()=>setView(false));
 document.getElementById('vw-top').addEventListener('click',()=>setView(true));
+function placeUnits(){ // Learner mode shows the units switch last among the controls; Advanced mode keeps it first in Additional controls
+ const uw=document.querySelector('.unitsw').parentNode;
+ if(LEARN)document.getElementById('main-controls').appendChild(uw);else{const ac=document.getElementById('adv-controls');ac.insertBefore(uw,ac.firstChild);}
+}
 function setMode(learn){ // Learner: Tilt Up/Down only, metric, two example lenses; Advanced: the full tool. Changing mode starts again from the defaults.
  LEARN=!!learn;document.body.classList.toggle('learner',LEARN);
  for(const [id,on] of[['md-learn',LEARN],['md-adv',!LEARN]]){const b=document.getElementById(id);b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');}
  fillLensList();
- {const uw=document.querySelector('.unitsw').parentNode,lr=document.getElementById('lens-row'); // Learner mode shows the units switch under the lens picker; Advanced keeps it in Additional controls
-  if(LEARN)lr.insertAdjacentElement('afterend',uw);else document.getElementById('fov-row').parentNode.insertBefore(uw,document.getElementById('fov-row'));}
+ placeUnits();
  if(topView)setView(false);
+ if(window.updLegTog)window.updLegTog();
  resetAll();draw();
 }
+{const lt=document.getElementById('leg-tog'),pn=document.getElementById('leg-body').parentNode; // phones and narrow screens: the legend (and, in Advanced mode, the details) can be folded away
+ pn.classList.add('legoff');
+ const upd=()=>{const off=pn.classList.contains('legoff');lt.setAttribute('aria-expanded',off?'false':'true');lt.querySelector('.chev').textContent=off?'▸':'▾';
+  document.getElementById('leg-tog-txt').textContent=(off?'Show ':'Hide ')+(LEARN?'legend':'legend and details');};
+ lt.addEventListener('click',()=>{pn.classList.toggle('legoff');upd();});
+ window.updLegTog=upd;upd();}
 document.getElementById('md-learn').addEventListener('click',()=>{if(!LEARN)setMode(true);});
 document.getElementById('md-adv').addEventListener('click',()=>{if(LEARN)setMode(false);});
 // ---- Help: information bubbles, shown only while Help is on; tap (or hover with a mouse) a bubble to read its note
@@ -1322,7 +1386,7 @@ const TIPS={
  h:'In Tilt Up/Down view, choose the height of the camera relative to the ground.',
  cam_c:()=>T()?'Pan the camera and lens left or right. Panning the camera changes perspective.':'Lean the camera and lens up or down: positive values point the camera down, negative values point it up. Leaning the camera up or down changes perspective.',
  tilt_c:'Lens tilt changes the angle of the plane of focus. When tilt is 0 degrees, the lens functions like a non-tilt lens. Positive and negative tilt values can be used.',
- focus_c:()=>'Choose where the plane of focus intersects the lens axis, from the closest focus distance of '+fmtD(DMIN)+(LENS?' for the '+LENS.name:' (Custom)')+' out to infinity. You can focus past infinity. Type "inf" for infinity.',
+ focus_c:()=>'Choose where the plane of focus crosses the camera axis (the line straight out from the sensor centre, which is also the lens axis when there is no tilt), from the closest focus distance of '+fmtD(DMIN)+(LENS?' for the '+LENS.name:' (Custom)')+' out to infinity. You can focus past infinity. Type "inf" for infinity.',
  shift_c:'Shift the lens (up or down in Tilt Up/Down view, and left or right in Tilt Left/Right view). Lens shift does not change perspective. The most you can shift is the smallest of 15 mm (or the chosen lens\'s own limit) and the amount that keeps the whole sensor inside the lens\'s image circle, so a large sensor or a small image circle allows less.',
  view_c:()=>T()?'Sets how much of the scene is shown in the distance direction. Use a larger value to see more of the scene, or a smaller one to zoom in. It can be set from '+(imperial?'15 ft to 325 ft':'5 m to 100 m')+'; the slider is on a logarithmic scale, so small widths are as easy to set as large ones.':'Sets how much of the scene is shown across the display. Use a larger value to see more of the scene, or a smaller one to zoom in. It can be set from '+(imperial?'15 ft to 325 ft':'5 m to 100 m')+'; the slider is on a logarithmic scale, so small widths are as easy to set as large ones.',
  units:'Switch between Metric and Imperial units.',
@@ -1334,12 +1398,13 @@ const TIPS={
  curv:'Real lenses do not focus on a perfectly flat plane. With field curvature, the surface of best focus bends toward the camera away from the lens axis, so the sharp zone becomes a shallow curve instead of a straight line. Choose None, Mild or Strong. With Strong, at the edge of the lens\'s image circle the best focus is about 4% nearer than at the centre; Mild is half of that. These amounts are exaggerated so that the effect is easy to see: real tilt-shift lenses are designed to be much flatter, and the curve does not represent any particular lens. The faint dashed lines show where the plane of focus and the limits of sharpness would be with a flat field. The red and green handles stay on those straight lines.',
  fovchk:'The teal shading that represents the area in sharp focus normally extends to the edge of the lens\'s image circle. Check this box to limit it to the field of view.',
  reset:'Returns all settings to their defaults, including the background objects. Field curvature goes back to None and any Help bubbles are turned off. The view and the units you have chosen are not changed.',
- plane:'The plane of focus is the flat surface where everything is rendered as sharp as the lens can make it. Here it is seen edge-on, as the red line. The line is solid where the lens forms an image, inside its image circle, and dashed beyond that. Points in front of or behind it are blurred more and more the farther they are from it. The focus distance moves the plane nearer or farther, and lens tilt turns it about the hinge line. With field curvature on, this straight line is only a faint reference; the solid curve is the surface of best focus.',
+ plane:'The plane of focus is the flat surface where everything is rendered as sharp as the lens can make it. Here it is seen edge-on, as the red line. The line is solid where the lens forms an image, inside its image circle, and dashed beyond that. Points in front of or behind it are blurred more and more the farther they are from it. The focus distance moves the plane nearer or farther, and lens tilt turns it about the hinge line. With field curvature on, this straight line is only a faint reference; the solid curve is the surface of best focus. The red + sign shows the focus distance – the point where the plane of focus crosses the camera axis.',
  limits:'The teal lines mark the limits of acceptable sharpness. The lines are solid where the lens forms an image, inside its image circle, and dashed beyond that. Anything between the teal lines counts as acceptably sharp. That means a point is blurred by no more than the circle of confusion, the largest blur spot on the sensor that still looks like a sharp point at normal viewing size. The explorer finds the limits by working out, with a thin-lens model, where the blur grows to that size in front of and behind the plane of focus. A wider aperture or a longer lens narrows the zone, and a larger circle of confusion widens it. With tilt, the zone is a wedge that is narrowest at the hinge. With field curvature on, these straight lines are only faint references; the solid teal curves are the limits. The lines come from defocus blur alone and do not account for diffraction; the shading inside them does (see the sharpness shading entry in the legend).',
  hinge:'The hinge line is the line the plane of focus pivots around as the focus distance changes. It lies at the focal length divided by the sine of the tilt angle from the lens, in the plane through the lens parallel to the sensor, so more tilt brings it closer. The green dot marks the hinge and the dashed green line joins it to the lens. It is not shown when tilt is 0. The hinge belongs to the flat-field plane, so with field curvature on it describes the faint straight reference lines.',
  lplane:'The dotted line through the lens is the lens plane, the plane of the lens itself. It stays square to the lens axis and swings with the lens when tilt is applied. The plane of focus meets it along the same line where it meets the extended sensor plane (the Scheimpflug rule).',
- laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens. The focus distance is measured to the point where the plane of focus crosses this line.',
- readout:()=>T()?'Sharp along lens axis: the range of distances along the lens axis that is acceptably sharp. Plane crosses lens axis: the focus distance, where the plane of focus crosses the lens axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature: the setting chosen under Additional controls. Airy disc: the smallest spot a perfect lens can form at this aperture, compared with the circle of confusion.':'Plane first meets ground: the nearest place to the camera where the plane of focus meets the ground surface. On uneven ground the plane can meet the surface in more than one place. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature: the setting chosen under Additional controls. Airy disc: the smallest spot a perfect lens can form at this aperture, compared with the circle of confusion.',
+ caxis:'The camera axis is the line straight out from the middle of the sensor, in the direction the camera is pointing. Focus distance is measured along it, to the small cross where the plane of focus crosses it. With no tilt it is the same line as the lens axis.',
+ laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens, so with tilt it points away from the camera axis. Focus distance is measured along the camera axis, not along this line.',
+ readout:()=>T()?'Sharp along camera axis: the range of distances along the camera axis (the line straight out from the sensor centre) that is acceptably sharp. Plane crosses camera axis: the focus distance, where the plane of focus crosses the camera axis. Horizontal field of view: the angle the sensor sees from side to side. Frame width at focus: how wide the picture frame is at the focus point. Field curvature: the setting chosen under Additional controls. Airy disc: the smallest spot a perfect lens can form at this aperture, compared with the circle of confusion.':'Plane first meets ground: the nearest place to the camera where the plane of focus meets the ground surface. On uneven ground the plane can meet the surface in more than one place. Vertical field of view: the angle the sensor sees from top to bottom. Frame height at focus: how tall the picture frame is at the focus point. Field curvature: the setting chosen under Additional controls. Airy disc: the smallest spot a perfect lens can form at this aperture, compared with the circle of confusion.',
  link:'Makes a web address (a link) that holds every setting you have now: the view, units, lens, ground surface, all the controls and the background objects. Open it in a new browser window or send it to someone to get the same setup. The link is copied to the clipboard, ready to paste. It opens the shared version of the tool at rcdeloe.github.io/Tilt-Shift-Demo. Nothing is stored on a server: the whole setup is in the link.',
  shot:'Generate and save a summary image of the current view and key parameters as a JPEG or PDF, or copy it to the clipboard as an image.'
 };
@@ -1351,8 +1416,9 @@ const LTIPS={ // Learner mode wording for some bubbles
  limits:'The teal lines mark the limits of acceptable sharpness. The lines are solid where the lens forms an image, inside its image circle, and dashed beyond that. Anything between the teal lines – depth of field – is acceptably sharp. When tilt is applied, the teal lines come together at the “hinge”, and form a wedge.',
  cam:'The tool assumes the camera is attached to a tripod, with a tilt-shift lens attached. You can raise and lower the camera, and you can change pitch from level to pointing up or pointing down. Moving the camera changes perspective.',
  hinge:'The hinge line is the line the plane of focus pivots around as the focus distance changes. The green dot marks the hinge and the dashed green line joins it to the lens. It is not shown when tilt is 0.',
- plane:'The plane of focus is the surface where everything is rendered as sharp as the lens can make it. It is shown from the side here as a red line. The line is shown as solid inside the lens image circle. When tilt is used, changing focus tilts the plane of focus about the hinge line.',
+ plane:'The plane of focus is the surface where everything is rendered as sharp as the lens can make it. It is shown from the side here as a red line. The line is shown as solid inside the lens image circle. When tilt is used, changing focus tilts the plane of focus about the hinge line. The red + sign shows the focus distance.',
  fov:'The field of view is what you see in the camera’s view finder or rear screen.',
+ caxis:'The camera axis is the line straight out from the middle of the sensor, in the direction the camera is pointing. Focus distance is measured along it, to the small cross where the plane of focus crosses it. With no tilt it is the same line as the lens axis.',
  laxis:'The lens axis is the line through the lens centre at right angles to the lens. It tilts with the lens.',
  lplane:'The lens plane is a plane that runs through the lens. It stays square to the lens axis and moves with the lens when tilt is applied.'};
 const tipEl=document.getElementById('tip');
@@ -1379,7 +1445,7 @@ function wrapWith(el,id,what,inline){const w=document.createElement('div');w.cla
  addBubble(document.querySelector('.panel.objs h2'),'objs','background objects');
  {const o=document.getElementById('out'),w=document.createElement('div');w.className='readoutw';w.style.position='relative';o.parentNode.insertBefore(w,o);w.appendChild(o);const b=mkBubble('readout','the results');b.style.cssText='position:absolute;right:0;top:12px;margin:0';w.appendChild(b);}
  const ov=document.getElementById('sceneTips');
- [['cam','the camera and lens'],['focus','the focus control'],['tilt','the tilt control'],['fov','the field of view'],['hyper','the hyperfocal distance'],['plane','the plane of focus'],['limits','the limits of acceptable sharpness'],['hinge','the hinge line'],['lplane','the lens plane line'],['laxis','the lens axis line']].forEach(([id,w])=>ov.appendChild(mkBubble(id,w)));
+ [['cam','the camera and lens'],['focus','the focus control'],['tilt','the tilt control'],['fov','the field of view'],['hyper','the hyperfocal distance'],['plane','the plane of focus'],['limits','the limits of acceptable sharpness'],['hinge','the hinge line'],['lplane','the lens plane line'],['caxis','the camera axis line'],['laxis','the lens axis line']].forEach(([id,w])=>ov.appendChild(mkBubble(id,w)));
  // the same bubbles beside their legend entries; they read the same TIPS entry, so the text is always identical
  [['Plane of focus','plane','the plane of focus'],['Limits of acceptable sharpness','limits','the limits of acceptable sharpness'],['Sharpness shading','shade','the sharpness shading'],['Hyperfocal','hyper','the hyperfocal distance'],['Field of view','fov','the field of view'],['Hinge line','hinge','the hinge line'],['Lens plane','lplane','the lens plane line'],['Lens axis','laxis','the lens axis line']].forEach(([t,id,w])=>{
   const sp=[...document.querySelectorAll('.legend > span')].find(e=>e.textContent.trim().startsWith(t));if(!sp){console.warn('no legend item',t);return;}
@@ -1459,6 +1525,7 @@ document.getElementById('link-btn').addEventListener('click',async()=>{
  btn.textContent=ok?'Link copied':'Copy not available here';clearTimeout(btn.t);btn.t=setTimeout(()=>{btn.textContent='Save link';},2400);
 });
 addEventListener('hashchange',restoreFromHash);
+placeUnits();
 if(!/^#s=/.test(location.hash))setMode(true); // a fresh visit opens in Learner mode; saved links carry their own mode
 restoreFromHash();
 
