@@ -32,7 +32,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 "Atkinson Hype
 @keyframes tourpulse{50%{outline-color:rgba(224,123,0,.25)}}
 body.tour-on [inert]{opacity:.45}
 .tourcard{background:#fff7e8;border:2px solid #e07b00;border-radius:10px;padding:10px 12px;margin:12px 0;font-size:.95rem;line-height:1.4;color:#222}
-.tourcard .tstep{font-size:.72rem;color:#7a5200;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.tourcard .ttl{font-weight:700;margin:2px 0}.tourcard .tother{margin-top:6px;font-size:.88rem;color:#5a4a20}.tourcard .tnote{margin-top:8px;padding-top:8px;border-top:1px solid #f0d9a8}.tourcard button{margin-top:10px}.tourcard .tbtns{display:flex;gap:8px}.tourcard .tback{margin-left:auto}
+.tourcard .tstep{font-size:.72rem;color:#7a5200;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.tourcard .ttl{font-weight:700;margin:2px 0}.tourcard .tother{margin-top:6px;font-size:.88rem;color:#5a4a20}.tourcard .tnote{margin-top:8px;padding-top:8px;border-top:1px solid #f0d9a8}.tourcard button{margin-top:10px}.tourcard .tbtns{display:flex;gap:8px}.tourcard .tnext{margin-left:auto}
 body:not(.learner) #main-controls{display:flex;flex-direction:column}
 body:not(.learner) #main-controls>.row:has(#r_fl){order:1}
 body:not(.learner) #main-controls>.row:has(#r_ap){order:2}
@@ -132,7 +132,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.324</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.326</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div id="lrn-read" class="lrnread" aria-live="polite"></div>
@@ -1585,7 +1585,8 @@ const TOUR=[
   note:()=>'At f/8, everything from about '+tourM('3 m to 20 m','10 ft to 66 ft')+' is sharp when the lens is focused at '+tourM('5 m','15 ft')+'.'},
  {title:'Focus at the hyperfocal distance',text:()=>tourM('Type 6.6 for focus distance.','Type 21.6 for focus distance.'),other:()=>tourM('You can use the slider or drag the red focus circle to adjust focus and see how depth of field changes. However, you will need to type 6.6 in directly to set that focus distance because the slider and the red focus drag circle jump over that number.','You can use the slider or drag the red focus circle to adjust focus and see how depth of field changes. However, you will need to type 21.6 in directly to set that focus distance because the slider and the red focus drag circle jump over that number.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,typed:true, // the value must be typed into the box (the slider and arrows move focus but do not finish the step)
   goal:()=>Math.abs(tourFocusM()-(imperial?21.6*0.3048:6.6))<(imperial?0.25*0.3048:0.05),
-  note:()=>'The hyperfocal distance for a 24mm lens on a full frame sensor at f/8 is '+tourM('6.6 m','21.6 ft')+'. This is the focus distance where everything from the plane of focus to infinity, and everything halfway between the plane of focus and the lens, is acceptably sharp. Sometimes focusing at the hyperfocal distance is all you need with a lens like this.'},
+  note:()=>'The hyperfocal distance for a 24mm lens on a full frame sensor at f/8 is '+tourM('6.6 m','21.6 ft')+'. This is the focus distance where everything from the plane of focus to infinity, and everything halfway between the plane of focus and the lens, is acceptably sharp.'},
+ {title:'Look at the result',text:()=>'What about longer lenses?',target:null,goal:'next',note:()=>'With a wide angle lens, sometimes focusing at the hyperfocal distance is all you need. There are plenty of situations where tilt is still extremely useful with wide angle lenses, but they are harder to illustrate with a tool like this. Therefore, next we\u2019ll try a 50mm lens \u2013 where the benefits of tilt are a lot easier to see.'},
  {title:'Start fresh',text:()=>'Click Reset to Default.',target:()=>document.getElementById('reset'),goal:'click',
   other:()=>'You don\u2019t have to choose a lens because the default lens is the Canon TS-E 50mm f/2.8.',
   note:()=>'Notice how the field of view has narrowed, and depth of field at f/2.8 is very shallow when you\u2019re using this 50mm lens.'},
@@ -1614,7 +1615,7 @@ const TOUR=[
  {title:'Look at the result',text:()=>'As noted earlier, you could have created a stack with 0 degrees tilt and f/5.6, but it would have required a lot more images. Using tilt, you made a smaller number of images quickly that will stack well.',target:null,goal:'next'}];
 // What each step leaves behind, so that starting part-way through can bring everything to the state the earlier steps would have produced
 const tourFt=(m,ft)=>setFocusDist(imperial?ft/FT:m);
-const TOUR_APPLY=[()=>resetAll(),()=>{document.getElementById('n_lens').value='c24';setLens('c24');},()=>setVal('ap',8),()=>tourFt(6.6,21.6),()=>resetAll(),()=>setVal('ap',11),()=>tourFt(13,43),()=>tourFt(8.5,28),()=>{},()=>setVal('tilt',0.75),()=>tourFt(16,52),()=>{},()=>setVal('shift',5),()=>{},()=>setVal('ap',5.6),()=>tourFt(10,33),()=>tourFt(25,82),()=>{}];
+const TOUR_APPLY=[()=>resetAll(),()=>{document.getElementById('n_lens').value='c24';setLens('c24');},()=>setVal('ap',8),()=>tourFt(6.6,21.6),()=>{},()=>resetAll(),()=>setVal('ap',11),()=>tourFt(13,43),()=>tourFt(8.5,28),()=>{},()=>setVal('tilt',0.75),()=>tourFt(16,52),()=>{},()=>setVal('shift',5),()=>{},()=>setVal('ap',5.6),()=>tourFt(10,33),()=>tourFt(25,82),()=>{}];
 let tourOn=false,tourI=0,tourDone=false,tourClicked=false,tourTyped=false,tourCard=null,tourTimer=null;
 const TOUR_HOLD=700; // ms a slider or arrow-key value must be held before it counts, so sliding past the goal does not finish the step (typing, selecting and clicking count at once)
 const tourCur=()=>tourOn?TOUR[tourI]:null;
@@ -1639,7 +1640,7 @@ function tourRender(){
  const anchor=tgt?(tgt.id==='reset'?tgt.closest('.shotrow'):tgt):document.querySelector('.shotrow');
  if(tgt)(tgt.id==='reset'?tgt:tgt).classList.add('tour-ring');
  card.style.order=getComputedStyle(anchor).order;anchor.after(card);tourCard=card;
- if(tourI>0){const bk=document.createElement('button');bk.type='button';bk.className='btn tback';bk.textContent='Go back';bk.addEventListener('click',tourBack);card.querySelector('.tbtns').appendChild(bk);}
+ if(tourI>0){const bk=document.createElement('button');bk.type='button';bk.className='btn tback';bk.textContent='\u2190 Go back';bk.addEventListener('click',tourBack);card.querySelector('.tbtns').appendChild(bk);}
  if(st.goal==='next')tourShowNote(true);
  else if(st.goal!=='click'&&st.goal()){tourTyped=!!st.typed;tourCheck();} // the setting already meets this step's goal (for example after going back): it counts without more input
  card.scrollIntoView({block:'nearest',behavior:'smooth'});
@@ -1648,7 +1649,7 @@ function tourShowNote(info){
  const st=TOUR[tourI],n=tourCard.querySelector('.tnote'),last=tourI===TOUR.length-1;
  tourCard.querySelector('.tother').hidden=true; // the extra guidance is only needed before the goal is reached
  if(st.note){n.textContent=st.note();n.hidden=false;}
- const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=last?'Finish':'Next';b.addEventListener('click',tourNext);{const tb=tourCard.querySelector('.tbtns');tb.insertBefore(b,tb.firstChild);}
+ const b=document.createElement('button');b.type='button';b.className='btn tnext';b.textContent=last?'Finish \u2192':'Next \u2192';b.addEventListener('click',tourNext);{const tb=tourCard.querySelector('.tbtns');tb.appendChild(b);}
  tourLock(null);
  if(!info)b.focus({preventScroll:true});
 }
