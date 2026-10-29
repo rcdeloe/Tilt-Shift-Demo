@@ -132,7 +132,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.323</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.324</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div id="lrn-read" class="lrnread" aria-live="polite"></div>
@@ -1402,7 +1402,7 @@ document.getElementById('md-adv').addEventListener('click',()=>{if(LEARN)setMode
 let helpOn=false,tipFor=null,tipPinned=false;
 const T=()=>topView;
 const TIPS={
- about:'Tilt-shift focus explorer is a tool designed to demonstrate how tilt works using tilt-shift lenses. Learner mode offers a basic set of controls and two lens+sensor choices to show how up/down tilt works. Advanced mode adds side-to-side tilt, additional lens choices, and many advanced controls. This educational tool uses a thin-lens model where tilt pivots about the lens centre and focus is set by sensor-to-lens extension. Tilt is slightly different on real lenses. Contact the author for technical details.',
+ about:'Tilt-shift focus explorer is a tool designed to demonstrate how tilt works using tilt-shift lenses. Learner mode offers a basic set of controls and two lens+sensor choices to show how up/down tilt works. Click the "Guided tour" button in Learner mode for a short tutorial. Advanced mode adds side-to-side tilt, additional lens choices, and many advanced controls. The tool uses a thin-lens model where tilt pivots about the lens centre and focus is set by sensor-to-lens extension. Tilt is slightly different on real lenses. Contact Rob for technical details.',
  cam:'The tool assumes the camera is attached to a tripod, with a tilt-shift lens attached. Applying tilt will tilt the lens, but the sensor will not move. The position and orientation of the camera can be adjusted using the controls.',
  focus:'Change focus by dragging the red circle.',
  tilt:'Change tilt angle by dragging the green diamond.',
