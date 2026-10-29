@@ -132,7 +132,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.321</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.323</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div id="lrn-read" class="lrnread" aria-live="polite"></div>
@@ -259,8 +259,13 @@ function build(id,list){
    box.appendChild(d);
    const n=d.querySelector('#n_focus'),r=d.querySelector('#r_focus');
    n.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();stepFocus(e.key==='ArrowUp'?1:-1);}});
-   n.addEventListener('mousedown',e=>{ // the browser's own spinner arrows (right edge of the box): step by our rule so that infinity and whole steps work
-    if(e.button===0&&e.offsetX>n.clientWidth-22&&e.offsetX<=n.offsetWidth){e.preventDefault();stepFocus(e.offsetY<n.offsetHeight/2?1:-1);}});
+   n.addEventListener('input',e=>{ // the browser's own spinner arrows give an input event with no inputType; typing always has one
+    if(e.inputType){delete n.dataset.spin;return;}
+    n.dataset.spin='1';const was=V.focus>=100,v=parseFloat(n.value);
+    if(was){if(v>0)syncFocus();else setFocusDist(FAR-1);} // at infinity the up arrow stays put and the down arrow steps in to 4999 m (or its equivalent in feet)
+    else if(isNaN(v)){syncFocus();}
+    else{const u=Math.max(DMIN,imperial?v/FT:v);setFocusDist(u);}
+    draw();});
    r.addEventListener('input',()=>{V.focus=parseFloat(r.value);syncFocus(true);draw();});
    n.addEventListener('change',()=>{const t=n.value.trim().toLowerCase();const mm=null;
     const u0=(t===''||t==='inf'||t==='∞'||t==='infinity')?Infinity:parseFloat(t);if(isNaN(u0)){syncFocus();return;}setFocusDist(imperial?u0/FT:u0);draw();});
@@ -305,7 +310,7 @@ const snapTilt=t=>LENS?Math.round(t/0.25)*0.25:t,tiltTxt=t=>(+t).toFixed(2);
 function syncFocus(fromSlider){
  const u=pctToDist(V.focus);
  if(!fromSlider)document.getElementById('r_focus').value=V.focus;
- {const nf=document.getElementById('n_focus');if(V.focus>100){nf.value='';nf.placeholder='∞ +'+pastInf(V.focus).toFixed(2)+' mm';}else if(isFinite(u)){nf.value=fmtD(u).replace(uL(),'');nf.placeholder='∞';}else{nf.value='';nf.placeholder='∞';}}
+ {const nf=document.getElementById('n_focus');nf.step=imperial?'3':'1';nf.min='0';if(V.focus>100){nf.value='';nf.placeholder='∞ +'+pastInf(V.focus).toFixed(2)+' mm';}else if(isFinite(u)){nf.value=fmtD(u).replace(uL(),'');nf.placeholder='∞';}else{nf.value='';nf.placeholder='∞';}}
 }
 function setFocusDist(u){V.focus=distToPct(u);syncFocus();}
 let lastCrossSide=1,focusSide=0,lastFocusSide=1,tiltRawPrev=null,tiltDir=0,PENDING=[],view=null,TA=[],tiltAnchor=null,handles=[],drag=null,grabOff=[0,0];
@@ -1575,21 +1580,23 @@ const tourFocusShown=()=>parseFloat(document.getElementById('n_focus').value); /
 const TOUR=[
  {title:'Start fresh',text:()=>'Click Reset to Default.',target:()=>document.getElementById('reset'),goal:'click'},
  {title:'Choose the lens',text:()=>'Choose the 24mm lens.',target:()=>document.getElementById('lens-row'),goal:()=>document.getElementById('n_lens').value==='c24',
-  note:()=>'The lens is focused at '+tourM('5 m','15 ft')+' with aperture f/3.5. The camera is on a tripod, level, and '+tourM('175 cm','70 in')+' off the ground. The field of view for a 24mm lens is shown with the orange dashed lines. The vertical red line is the plane of focus. The teal lines on either side of the plane of focus show where the lens is acceptably sharp. This zone is usually called “depth of field”. Past the teal lines in either direction, sharpness falls off.'},
+  note:()=>'The lens is focused at '+tourM('5 m','15 ft')+' with aperture f/3.5. The camera is on a tripod, level, and '+tourM('175 cm','70 in')+' off the ground. The field of view for a 24mm lens is shown with the orange dashed lines. The vertical red line is the plane of focus. The teal lines on either side of the plane of focus show where the lens is acceptably sharp. The shaded zone inside the lines is “depth of field”. Darker shading means sharper. Past the teal lines in either direction, sharpness falls off.'},
  {title:'Set the aperture',text:()=>'Slide the aperture to f/8.',other:()=>'You can use the slider to explore how depth of field changes at different apertures. Rest for a moment on f/8 to set the value.',target:()=>document.getElementById('r_ap').closest('.row'),goal:()=>V.ap===8,
   note:()=>'At f/8, everything from about '+tourM('3 m to 20 m','10 ft to 66 ft')+' is sharp when the lens is focused at '+tourM('5 m','15 ft')+'.'},
- {title:'Focus at the hyperfocal distance',text:()=>tourM('Type 6.6 for focus distance.','Type 21.6 for focus distance.'),other:()=>tourM('You can use the slider or drag the red focus circle to adjust focus and see how depth of field changes. However, you will need to type 6.6 in directly to set that exact value.','You can use the slider or drag the red focus circle to adjust focus and see how depth of field changes. However, you will need to type 21.6 in directly to set that exact value.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,typed:true, // the value must be typed into the box (the slider and arrows move focus but do not finish the step)
+ {title:'Focus at the hyperfocal distance',text:()=>tourM('Type 6.6 for focus distance.','Type 21.6 for focus distance.'),other:()=>tourM('You can use the slider or drag the red focus circle to adjust focus and see how depth of field changes. However, you will need to type 6.6 in directly to set that focus distance because the slider and the red focus drag circle jump over that number.','You can use the slider or drag the red focus circle to adjust focus and see how depth of field changes. However, you will need to type 21.6 in directly to set that focus distance because the slider and the red focus drag circle jump over that number.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,typed:true, // the value must be typed into the box (the slider and arrows move focus but do not finish the step)
   goal:()=>Math.abs(tourFocusM()-(imperial?21.6*0.3048:6.6))<(imperial?0.25*0.3048:0.05),
   note:()=>'The hyperfocal distance for a 24mm lens on a full frame sensor at f/8 is '+tourM('6.6 m','21.6 ft')+'. This is the focus distance where everything from the plane of focus to infinity, and everything halfway between the plane of focus and the lens, is acceptably sharp. Sometimes focusing at the hyperfocal distance is all you need with a lens like this.'},
  {title:'Start fresh',text:()=>'Click Reset to Default.',target:()=>document.getElementById('reset'),goal:'click',
-  note:()=>'The default lens is the Canon TS-E 50mm f/2.8. Notice how the field of view has narrowed, and depth of field at f/2.8 is very shallow.'},
+  other:()=>'You don\u2019t have to choose a lens because the default lens is the Canon TS-E 50mm f/2.8.',
+  note:()=>'Notice how the field of view has narrowed, and depth of field at f/2.8 is very shallow when you\u2019re using this 50mm lens.'},
  {title:'Set a smaller aperture',text:()=>'Slide the aperture to f/11.',target:()=>document.getElementById('r_ap').closest('.row'),goal:()=>V.ap===11,
-  note:()=>'With a focus distance of '+tourM('5 m','15 ft')+', depth of field is still very shallow. Notice how the shading between the two lines that define the edges of acceptable sharpness has become lighter. This is telling you that at f/11, you are losing a lot of sharpness to diffraction.'},
- {title:'Try to get everything in focus',text:()=>tourM('Focus at 13 m.','Focus at 43 ft.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,goal:()=>Math.abs(tourFocusShown()-tourM(13,43))<0.01,
-  note:()=>'At '+tourM('13 m','43 ft')+', most of the scene is acceptably sharp, but the low plants in the foreground will be out of focus.'},
+  note:()=>'With a focus distance of '+tourM('5 m','15 ft')+', depth of field is still very shallow even at f/11. Notice also how the shading between the two lines that define the edges of acceptable sharpness has become lighter. This is telling you that at f/11, you are losing sharpness to diffraction.'},
+ {title:'Try to get everything in focus',text:()=>tourM('Focus at 13 m.','Focus at 43 ft.'),other:()=>'Imagine that your goal is to get everything in focus from the low plants in the foreground to the tree in the background.',handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,goal:()=>Math.abs(tourFocusShown()-tourM(13,43))<0.01,
+  note:()=>'At '+tourM('13 m','43 ft')+', most of the scene falls within the depth of field zone, but the low plants in the foreground will be out of focus. Notice how light the shading is. This is telling you that diffraction is affecting sharpness.'},
  {title:'Get the foreground in focus',text:()=>tourM('Focus at 8.5 m.','Focus at 28 ft.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,goal:()=>Math.abs(tourFocusShown()-tourM(8.5,28))<0.01,
   note:()=>'The foreground is now within the zone of acceptable sharpness, as is the boulder, but it does not reach the shrub.'},
- {title:'See what happens when you use tilt',text:()=>'Set tilt to 0.75 degrees.',other:()=>'You can type 0.75 in directly, but you can also use the slider or drag the green diamond to adjust tilt. Rest for a moment on 0.75 after using the slider or green diamond to set the value.',handle:'tilt',target:()=>document.getElementById('r_tilt').closest('.row'),goal:()=>Math.abs(+V.tilt-0.75)<1e-6,
+ {title:'Look at the result',text:()=>'Consider whether stacking would work',target:null,goal:'next',note:()=>'Focus stacking is definitely an option. It\u2019s the solution most people who want front-to-back focus would use. However, you\u2019d want to use a smaller aperture to improve sharpness, and you\u2019d need to make a lot of photos to create a suitable stack.'},
+ {title:'See what happens when you use tilt',text:()=>'Set tilt to 0.75 degrees.',other:()=>'You can type 0.75 in directly, but you can also use the slider or drag the green diamond to adjust tilt. Rest for a moment on 0.75 when using the slider or green diamond to set the value.',handle:'tilt',target:()=>document.getElementById('r_tilt').closest('.row'),goal:()=>Math.abs(+V.tilt-0.75)<1e-6,
   note:()=>'The plane of focus now leans forward and extends from the green circle called the “hinge” (underneath the camera) out to the top of the tree. The zone of acceptable sharpness (depth of field) is now a wedge that comes to a point at the hinge, and broadens out.'},
  {title:'Adjust the position of the wedge of acceptable sharpness',text:()=>tourM('Change focus to 16 m.','Change focus to 52 ft.'),other:()=>'Remember that you can also drag the red circle or use the slider to adjust focus.',handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,goal:()=>Math.abs(tourFocusShown()-tourM(16,52))<0.01,
   note:()=>'Focusing farther into the scene causes the plane of focus to lean forward from the anchor point at the hinge. The wedge of acceptable focus now covers everything within the field of view of the lens.'},
@@ -1597,17 +1604,17 @@ const TOUR=[
   note:()=>'The camera is level. We could point it upwards to get the top of the tree into the field of view, but that changes perspective. There’s a better way.'},
  {title:'Use shift to position the whole tree in the scene',text:()=>'Shift up 5 mm using the slider, the arrow keys or by typing.',target:()=>document.getElementById('r_shift').closest('.row'),goal:()=>Math.abs(+V.shift-5)<1e-6,
   note:()=>'Shifting up 5 mm gets the whole tree into the field of view, but now the foreground starts at the boulder. Perspective is not changed when you use shift.'},
- {title:'Look at the result',text:()=>'By using f/11 to make the wedge of acceptable focus wide enough, you\u2019re giving up sharpness to diffraction. This may be an acceptable tradeoff if you need to capture the scene with one image, and f/11 images usually sharpen up nicely in post. However, if you\u2019re after maximum sharpness in camera, there\u2019s another way that uses a larger (sharper) aperture and tilt.',target:null,goal:'next'},
+ {title:'Look at the result',text:()=>'By using f/11 to make the wedge of acceptable focus wide enough, you\u2019re giving up sharpness to diffraction. This may be an acceptable tradeoff if you need to capture the scene with one image; f/11 images can sharpen up nicely in post. However, if you\u2019re after maximum sharpness in camera, there\u2019s another way that uses a larger (sharper) aperture and tilt.',target:null,goal:'next'},
  {title:'Use a smaller aperture',text:()=>'Set the aperture to f/5.6.',target:()=>document.getElementById('r_ap').closest('.row'),goal:()=>V.ap===5.6,
   note:()=>'The wedge of acceptable sharpness will become much narrower, but the darker shading indicates that diffraction is reduced (and sharpness increased). Imagine that you made a photograph with these settings, and that you\u2019re going to create a three-image focus stack.'},
  {title:'Make the second photograph in the stack',text:()=>tourM('Focus at 10 metres.','Focus at 33 feet.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,goal:()=>Math.abs(tourFocusShown()-tourM(10,33))<0.01,
-  note:()=>'The wedge of acceptable focus lifts to get the top of the tree. This is the second photograph in the stack.'},
+  note:()=>'The wedge of acceptable focus lifts and covers the top of the tree. This is the second photograph in the stack.'},
  {title:'Make the third photograph in the stack',text:()=>tourM('Focus at 25 metres.','Focus at 82 feet.'),handle:'focus',target:()=>document.getElementById('r_focus').closest('.row'),keys:true,goal:()=>Math.abs(tourFocusShown()-tourM(25,82))<0.01,
   note:()=>'The wedge of acceptable focus lowers to get the bottom of the tree. This is the third photograph in the stack.'},
- {title:'Look at the result',text:()=>'You could also have created a stack with 0 degrees tilt, but it would have required a lot more images. Using tilt, you made a smaller number of images quickly that will stack well.',target:null,goal:'next'}];
+ {title:'Look at the result',text:()=>'As noted earlier, you could have created a stack with 0 degrees tilt and f/5.6, but it would have required a lot more images. Using tilt, you made a smaller number of images quickly that will stack well.',target:null,goal:'next'}];
 // What each step leaves behind, so that starting part-way through can bring everything to the state the earlier steps would have produced
 const tourFt=(m,ft)=>setFocusDist(imperial?ft/FT:m);
-const TOUR_APPLY=[()=>resetAll(),()=>{document.getElementById('n_lens').value='c24';setLens('c24');},()=>setVal('ap',8),()=>tourFt(6.6,21.6),()=>resetAll(),()=>setVal('ap',11),()=>tourFt(13,43),()=>tourFt(8.5,28),()=>setVal('tilt',0.75),()=>tourFt(16,52),()=>{},()=>setVal('shift',5),()=>{},()=>setVal('ap',5.6),()=>tourFt(10,33),()=>tourFt(25,82),()=>{}];
+const TOUR_APPLY=[()=>resetAll(),()=>{document.getElementById('n_lens').value='c24';setLens('c24');},()=>setVal('ap',8),()=>tourFt(6.6,21.6),()=>resetAll(),()=>setVal('ap',11),()=>tourFt(13,43),()=>tourFt(8.5,28),()=>{},()=>setVal('tilt',0.75),()=>tourFt(16,52),()=>{},()=>setVal('shift',5),()=>{},()=>setVal('ap',5.6),()=>tourFt(10,33),()=>tourFt(25,82),()=>{}];
 let tourOn=false,tourI=0,tourDone=false,tourClicked=false,tourTyped=false,tourCard=null,tourTimer=null;
 const TOUR_HOLD=700; // ms a slider or arrow-key value must be held before it counts, so sliding past the goal does not finish the step (typing, selecting and clicking count at once)
 const tourCur=()=>tourOn?TOUR[tourI]:null;
@@ -1696,7 +1703,8 @@ document.getElementById('tour-skip-go').addEventListener('click',()=>{const n=pa
 document.querySelector('#tour-skip input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('tour-skip-go').click();});
 function tourFromAddress(){const m=/[#?&]tour=(\d+)/.exec(location.hash+location.search);if(m&&LEARN)tourBegin(parseInt(m[1],10)-1);}
 {const d0=draw;draw=function(){d0.apply(this,arguments);tourCheck();};}
-document.getElementById('main-controls').addEventListener('change',e=>{if(tourOn&&e.target&&e.target.type==='number'){tourTyped=true;tourCheck();}}); // a value typed into a number box counts at once
+document.getElementById('main-controls').addEventListener('change',e=>{if(e.target&&e.target.dataset&&e.target.dataset.spin){delete e.target.dataset.spin;return;} // the spinner arrows do not count as typing
+  if(tourOn&&e.target&&e.target.type==='number'){tourTyped=true;tourCheck();}}); // a value typed into a number box counts at once
 document.getElementById('reset').addEventListener('click',()=>{if(tourOn&&TOUR[tourI].goal==='click'){tourClicked=true;tourCheck();}});
 placeUnits();
 if(!/^#s=/.test(location.hash))setMode(true); // a fresh visit opens in Learner mode; saved links carry their own mode
