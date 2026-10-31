@@ -17,13 +17,14 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 "Atkinson Hype
  .wrap main,.wrap .lower,.wrap .lower>div,.wrap .rightcol{display:contents}
  .wrap aside{order:1}.wrap .panel.objs{order:2}.wrap .rightcol>.panel{order:3}}
 .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.hdrbtns{display:flex;align-items:center;gap:10px;flex:none}
+.hdrbtns{display:flex;align-items:center;gap:10px;flex:0 1 auto;flex-wrap:wrap}
 .lrnread{display:flex;flex-wrap:nowrap;white-space:nowrap;justify-content:flex-end;gap:0 3.5vw;font-size:min(calc(13px + 1pt),3.5vw);color:#000;margin:8px 4px 0}
 .lrnread:empty{display:none}
 .legtog{display:none;align-items:center;gap:8px;width:100%;margin:10px 0 0;padding:9px 12px;font:inherit;font-weight:600;font-size:14px;color:var(--accent);background:var(--bg);border:1px solid var(--accent);border-radius:8px;cursor:pointer;text-align:left}
 .legtog .chev{display:inline-block;width:1em;font-size:15px}
 @media(max-width:880px){.legtog{display:flex}.panel.legoff .legend,.panel.legoff .readoutw{display:none}}
-.modesw{display:inline-grid;grid-template-columns:1fr 1fr;border:1px solid var(--accent);border-radius:999px;overflow:hidden;flex:none}
+#camsetup{margin:0}#camsetup>summary{display:none}
+.modesw{display:inline-grid;grid-template-columns:repeat(3,auto);border:1px solid var(--accent);border-radius:999px;overflow:hidden;flex:none}
 .modesw button{font:inherit;font-weight:600;font-size:13px;padding:5px 12px;border:0;background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap}
 .modesw button.on{background:var(--accent);color:var(--panel)}
 .modesw button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -50,7 +51,7 @@ body.learner #main-controls>.row:has(#r_shift){order:4}
 body.learner #main-controls>.row:has(#r_h){order:5}
 body.learner #main-controls>.row:has(#r_cam){order:6}
 body.learner #main-controls>.bw{order:7}
-body:not(.learner) .legend .ib:not([data-tip="shade"]),body.learner .legend .ib,body.learner .lower,body.learner details.addl,body.learner .bw:has(>.viewsw:not(.unitsw)),body.learner .bw:has(>#link-btn),body.learner #lens-note,body.learner .row:has(#n_fl),body.learner .readoutw,body.learner .legend>span:has(#hyp-leg){display:none!important}
+body:not(.learner) .legend .ib:not([data-tip="shade"]),body.learner .legend .ib,body.learner .lower,body.learner details.addl:not(.setup),body.learner .bw:has(>.viewsw:not(.unitsw)),body.learner .bw:has(>#link-btn),body.learner #lens-note,body.learner .row:has(#n_fl),body.learner .readoutw,body.learner .legend>span:has(#hyp-leg){display:none!important}
 .helpbtn{font:inherit;font-weight:600;font-size:13px;padding:5px 12px;border:1px solid var(--accent);border-radius:999px;background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex:none}
 .helpbtn[aria-pressed=true]{background:var(--accent);color:var(--panel)}
 .ib{display:none;width:22px;height:22px;min-width:22px;padding:0;border-radius:50%;border:1.5px solid var(--accent);background:var(--panel);color:var(--accent);font:italic 700 13px/1 Georgia,serif;cursor:pointer;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;box-shadow:0 0 0 2px var(--panel)}
@@ -131,8 +132,8 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <body>
 <div class="wrap">
  <main>
-  <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-29 v0.328</p>
+  <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced Tilt-Shift</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-30 v0.367</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div id="lrn-read" class="lrnread" aria-live="polite"></div>
@@ -162,8 +163,10 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
     <button type="button" id="vw-side" role="switch" aria-checked="false" class="on">Tilt Up/Down</button>
     <button type="button" id="vw-top" role="switch" aria-checked="false">Tilt Left/Right</button>
    </div>
+   <details class="addl setup" id="camsetup" open><summary>Camera setup</summary>
    <div class="row" id="lens-row"><label for="n_lens">Choose example lens</label><select id="n_lens" style="grid-column:1/3"></select></div>
    <p class="note" id="lens-note" style="display:none;margin:-6px 0 14px">With a lens chosen, tilt moves in 0.25° steps and shift in 0.5 mm steps, and distances and angles are rounded. Real lenses are set on coarse scales, and their true focal length and angle of view vary by a few percent.</p>
+   </details>
    <div id="main-controls"></div>
    <div class="shotrow"><button type="button" id="reset" class="btn">Reset to Default</button><button type="button" id="shot-btn" class="btn" aria-haspopup="true" aria-expanded="false">Screenshot</button>
    <button type="button" id="link-btn" class="btn">Save link</button>
@@ -191,7 +194,7 @@ const SENSORS=[
  {name:'Full frame 36mm x 24mm',w:36,h:24},
  {name:'Medium format 43.8mm x 32.9mm',w:43.8,h:32.9}];
 const APS_HALF=[2,2.4,2.8,3.3,4,4.8,5.6,6.7,8,9.5,11,13,16,19,22]; // whole and half stops (Custom)
-const APS_THIRD=[2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22,25,29,32,36,40,45]; // third-stop steps, as on real lenses
+const APS_THIRD=[2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22,25,29,32,36,40,45,51,57,64]; // third-stop steps, as on real lenses
 let APS=APS_HALF;
 const MAIN=[
 ['fl','Focal length (mm)','',8,300,1,24],
@@ -205,8 +208,10 @@ const EXTRA=[
 ['sensor','Sensor format','',0,2,1,2],
 ['circ','Image circle diameter (mm)','',67,90,1,85],
 ['coc','Circle of confusion','',0.002,0.2,0.001,0.011]];
-let TILTMAX=15,LENSSHIFT=15; // largest tilt (°) and shift (mm) the chosen lens allows (15 and 15 for Custom)
-let SHIFTMAX=15; // largest lens shift (mm) that keeps the whole sensor inside the image circle; never more than 15 mm
+let TILTMAX=20,LENSSHIFT=25; // largest tilt (°) and shift (mm) the chosen lens allows (20 and 25 for Custom)
+let TILTHI=20,TILTLO=20,SHIFTHI=25,SHIFTLO=25; // the allowed range of tilt and of shift, each side separately
+let SHIFTMAX=15; // largest lens shift (mm) that keeps the whole sensor inside the image circle
+let SHLIMKEY='';
 const ADV=[
 ['view','Scene width shown (m)','',5,100,0.5,30]];
 // scene width (m) <-> slider position 0-100 (logarithmic). Metric: 5-100 m. Imperial: 15-325 ft, with round-number steps (5 ft to 50 ft, 10 ft to 100 ft, then 25 ft)
@@ -285,7 +290,7 @@ function build(id,list){
   d.innerHTML=`<label for="n_${k}">${l}</label><input type="number" id="n_${k}" min="${mn}" max="${mx}" step="${st}" value="${val}"><input type="range" id="r_${k}" aria-label="${l}" min="${mn}" max="${mx}" step="${st}" value="${val}">`;
   box.appendChild(d);
   const n=d.querySelector('[type=number]'),r=d.querySelector('[type=range]');
-  const on=(src,other)=>()=>{const x=parseFloat(src.value);if(isNaN(x))return;other.value=x;const cf=imperial&&UN[k]?UN[k].f:1;const hi=k==='shift'?SHIFTMAX:k==='tilt'?TILTMAX:mx,lo=k==='shift'?-SHIFTMAX:k==='tilt'?-TILTMAX:mn;V[k]=Math.min(hi,Math.max(lo,x/cf));const clp=V[k]!==x;if(LENS&&(k==='shift'||k==='tilt')){const q=k==='tilt'?0.25:0.5;V[k]=Math.round(V[k]/q)*q;}if((k==='shift'||k==='tilt')&&(clp||src===r)){n.value=V[k];r.value=V[k];}draw();};
+  const on=(src,other)=>()=>{const x=parseFloat(src.value);if(isNaN(x))return;other.value=x;const cf=imperial&&UN[k]?UN[k].f:1;const hi=k==='shift'?SHIFTHI:k==='tilt'?TILTHI:mx,lo=k==='shift'?-SHIFTLO:k==='tilt'?-TILTLO:mn;V[k]=Math.min(hi,Math.max(lo,x/cf));const clp=V[k]!==x;if(LENS&&(k==='shift'||k==='tilt')){const q=k==='tilt'?0.25:0.5;V[k]=Math.round(V[k]/q)*q;}if((k==='shift'||k==='tilt')&&(clp||src===r)){n.value=V[k];r.value=V[k];}draw();};
   n.addEventListener('input',on(n,r));r.addEventListener('input',on(r,n));
   if(k==='shift'||k==='tilt')n.addEventListener('change',()=>{n.value=V[k];r.value=V[k];}); // a typed value settles on the nearest allowed step
  });
@@ -365,7 +370,7 @@ function autoScore(nx,ny,N){
 }
 function autoTiltFocus(){
  // every other setting, including scene width, stays as it is. Tilt is searched in whole and half degrees, and the focus distance in whole and half metres (feet when imperial), plus infinity
- const unit=imperial?1/FT:1,tls=[];for(let t=0;t<=TILTMAX+1e-9;t+=0.5)tls.push(t); // positive tilt only
+ const unit=imperial?1/FT:1,tls=[];for(let t=0;t<=TILTHI+1e-9;t+=0.5)tls.push(t); // positive tilt only
  const foc=[];for(let v=Math.ceil(DMIN/unit*2-1e-9)/2;v<=(imperial?300:100)+1e-9;v+=0.5){const m=v*unit;if(m>=DMIN-1e-9)foc.push({v,p:distToPct(m)});}foc.push({v:Infinity,p:100});
  const score=(tl,f,a,b,c)=>{V.tilt=tl;V.focus=f.p;return autoScore(a,b,c);};
  const search=()=>{const first=[];for(const tl of tls)for(const f of foc)first.push({tl,f,s:score(tl,f,40,25,120)});
@@ -409,10 +414,10 @@ async function takeScreenshot(fmt){
  const lgH=lgRows*lgRowH+8*k;
  // plain-language summary of the current setup, written under the legend
  const summaryText=()=>{
-  const sn=document.getElementById('n_sensor'),sname=sn.options[sn.selectedIndex].text.replace(/\s*\d.*$/,'').trim(),sdesc=/^APS/.test(sname)?'an '+sname:'a '+sname.charAt(0).toLowerCase()+sname.slice(1),num=(x,d)=>+Math.abs(x).toFixed(d);
+  const sn=document.getElementById('n_sensor'),sname=SENSORS[V.sensor].name.replace(/\s*\d.*$/,'').trim(),sdesc=/^APS/.test(sname)?'an '+sname:'a '+sname.charAt(0).toLowerCase()+sname.slice(1),num=(x,d)=>+Math.abs(x).toFixed(d);
   const ft=document.getElementById('n_focus').value||document.getElementById('n_focus').placeholder,flat=Math.abs(+V.tilt)<1e-9;
   const foc=ft.includes('∞')?(V.focus>100?'past infinity':'infinity'):(isFinite(+ft)&&ft.trim()!==''?String(+ft):ft)+uL();
-  let t=(LEARN&&LENS?LENS.name:V.fl+' mm lens'+(LENS?' ('+LENS.name+')':''))+' at f/'+V.ap+' on '+sdesc+' sensor. Lens is focused at '+foc+' with '+(flat?'0 degrees tilt':num(V.tilt,2)+' degrees tilt ('+(topView?(V.tilt>0?'right':'left'):(V.tilt>0?'down':'up'))+')')+'.';
+  let t=(LEARN&&LENS?LENS.name:V.fl+' mm lens'+(LENS?' ('+LENS.name+')':''))+' at f/'+V.ap+' on '+sdesc+' sensor. Lens is focused at '+foc+' with '+(flat?'0 degrees '+'tilt':num(V.tilt,2)+' degrees '+'tilt'+' ('+(topView?(V.tilt>0?'right':'left'):(V.tilt>0?'down':'up'))+')')+'.';
   if(Math.abs(+V.shift)>1e-9)t+=' Lens is shifted '+(topView?(V.shift>0?'right ':'left '):(V.shift>0?'up ':'down '))+num(V.shift,2)+' mm.';
   const cam=+V.cam,lvl=Math.abs(cam)<0.05;
   if(topView)t+=' Camera is on a tripod and '+(lvl?'pointed straight ahead':'panned '+(cam>0?'right ':'left ')+num(cam,1)+' degrees')+'.';
@@ -479,9 +484,14 @@ const LENSES={
  c50:{name:'Canon TS-E 50mm f/2.8L Macro',fl:50,ap:[2.8,32],dmin:0.27,shift:12,tilt:8.5,circ:67},
  c90:{name:'Canon TS-E 90mm f/2.8L Macro',fl:90,ap:[2.8,45],dmin:0.39,shift:12,tilt:10,circ:67},
  c135:{name:'Canon TS-E 135mm f/4L Macro',fl:135,ap:[4,45],dmin:0.49,shift:12,tilt:10,circ:67}};
-let LENS=null,LEARN=false; // LEARN: Learner mode (Tilt Up/Down only, two example lenses, simplified controls)
+let LENS=null,LEARN=false;
+const lensKey=()=>LENS?Object.keys(LENSES).find(k=>LENSES[k]===LENS):'custom';
+// LEARN: Learner mode (Tilt Up/Down only, two example lenses, simplified controls)
 const LEARN_LENSES={fuji:'Fujifilm GF 30mm f/5.6 T/S (medium format sensor)',c24:'Canon TS-E 24mm f/3.5L II (full frame sensor)',c50:'Canon TS-E 50mm f/2.8L Macro (full frame sensor)'};
-function fillLensList(){const sel=document.getElementById('n_lens');sel.innerHTML=LEARN?Object.keys(LEARN_LENSES).map(k=>`<option value="${k}">${LEARN_LENSES[k]}</option>`).join(''):'<option value="custom">Custom</option>'+Object.keys(LENSES).map(k=>`<option value="${k}">${LENSES[k].name}</option>`).join('');}
+function fillLensList(){const sel=document.getElementById('n_lens');
+ if(LEARN)sel.innerHTML=Object.keys(LEARN_LENSES).map(k=>`<option value="${k}">${LEARN_LENSES[k]}</option>`).join('');
+ else sel.innerHTML='<option value="custom">Custom</option>'+Object.keys(LENSES).map(k=>`<option value="${k}">${LENSES[k].name}</option>`).join('');
+ if(!LEARN){const k=lensKey();sel.value=k&&sel.querySelector(`option[value="${k}"]`)?k:'custom';}}
 fillLensList();document.getElementById('n_lens').addEventListener('change',e=>{setLens(e.target.value);draw();});
 const apIdx=v=>{let b=0;APS.forEach((a,i)=>{if(Math.abs(a-v)<Math.abs(APS[b]-v))b=i;});return b;};
 function setApList(list){
@@ -495,11 +505,11 @@ function setLens(id){
  const L=LENSES[id]||null;const LS=L?(LEARN&&(id==='c24'||id==='c50')?1:L.sensor):undefined; // in Learner mode the Canon 24mm and 50mm are paired with a full frame sensor
 LENS=L;document.getElementById('n_lens').value=L?id:'custom';
  const u=V.focus<=100?pctToDist(V.focus):null; // keep the focus distance unless the new closest focus rules it out
- DMIN=L?L.dmin:0.3;TILTMAX=L?L.tilt:15;LENSSHIFT=L?L.shift:15;
- setApList(L?APS_THIRD.filter(a=>a>=L.ap[0]-1e-9&&a<=L.ap[1]+1e-9):APS_HALF);
+ DMIN=L?L.dmin:0.3;TILTMAX=L?L.tilt:20;LENSSHIFT=L?L.shift:25;TILTHI=TILTLO=TILTMAX;
+ setApList(L?[L.ap[0]].concat(APS_THIRD.filter(a=>a>L.ap[0]+1e-9&&a<=L.ap[1]+1e-9)):APS_HALF); // the lens's own widest aperture is always on the list
  if(L)setVal('ap',L.ap[0]); // a newly chosen lens starts wide open
- for(const i of['n_tilt','r_tilt']){const e=document.getElementById(i);e.min=-TILTMAX;e.max=TILTMAX;e.step=L?0.25:0.05;}
- if(Math.abs(V.tilt)>TILTMAX)setVal('tilt',Math.sign(V.tilt)*TILTMAX);
+ for(const i of['n_tilt','r_tilt']){const e=document.getElementById(i);e.min=-TILTLO;e.max=TILTHI;e.step=L?0.25:0.05;}
+ if(V.tilt>TILTHI)setVal('tilt',TILTHI);else if(V.tilt<-TILTLO)setVal('tilt',-TILTLO);
  if(L){setVal('tilt',snapTilt(+V.tilt));setVal('shift',Math.round(V.shift*2)/2);}
  document.getElementById('lens-note').style.display=L?'':'none';
  if(L){setVal('fl',L.fl);setVal('circ',L.circ);if(LS!==undefined)applySensor(LS);}
@@ -638,9 +648,11 @@ const rgb=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16
 let M={};
 function updateShiftLimit(){ // the sensor must stay inside the image circle: its far corner is at (half the width across, half the height + shift along) the shift direction
  const R=V.circ/2,S=topView?V.sensW:V.sens,P=topView?V.sens:V.sensW;if(!(R>0&&S>0&&P>0))return;
- let m=Math.min(LENSSHIFT,Math.max(0,Math.floor((Math.sqrt(Math.max(0,R*R-P*P/4))-S/2)*2+1e-9)/2));
- if(m!==SHIFTMAX){SHIFTMAX=m;for(const id of['n_shift','r_shift']){const e=document.getElementById(id);if(e){e.min=-m;e.max=m;}}}
- if(Math.abs(V.shift)>SHIFTMAX){V.shift=Math.sign(V.shift)*SHIFTMAX;for(const id of['n_shift','r_shift']){const e=document.getElementById(id);if(e)e.value=V.shift;}}
+ const lim=(s,p,o)=>{const x=(Math.sqrt(Math.max(0,R*R-(o+p/2)*(o+p/2)))-s/2)*2;return Math.max(0,Math.floor(x+1e-9)/2);}; // largest movement along a side of length s, in 0.5 mm steps, rounded down
+ const m=Math.min(LENSSHIFT,lim(S,P,0));
+ const key=String(m);
+ if(key!==SHLIMKEY){SHLIMKEY=key;SHIFTMAX=m;SHIFTHI=m;SHIFTLO=m;for(const id of['n_shift','r_shift']){const e=document.getElementById(id);if(e){e.min=-m;e.max=m;}}}
+ if(V.shift>SHIFTHI||V.shift<-SHIFTLO){V.shift=V.shift>SHIFTHI?SHIFTHI:-SHIFTLO;for(const id of['n_shift','r_shift']){const e=document.getElementById(id);if(e)e.value=V.shift;}}
 }
 function model(){
  updateShiftLimit();
@@ -1067,7 +1079,7 @@ function draw(){
  // camera body: fixed on its tripod, with the sensor just behind the lens mount; the lens (below) is what moves with shift
  const pp=(X,Z)=>{const w=cw(X,Z);return[PX(w[0]),PY(w[1])];},ox=-M.shift/1000,zs=-1.7*k;
  const camPts=[];
- const poly=(pts,fill)=>{const q=pts.map(([X,Z])=>pp(ox+X*k,Z*k));camPts.push(...q);{const xs=q.map(v=>v[0]),ys=q.map(v=>v[1]);obst.push({x:Math.min(...xs)+3,y:Math.min(...ys)+3,w:Math.max(0,Math.max(...xs)-Math.min(...xs)-6),h:Math.max(0,Math.max(...ys)-Math.min(...ys)-6)});}sx.beginPath();q.forEach((v,i)=>i?sx.lineTo(v[0],v[1]):sx.moveTo(v[0],v[1]));sx.closePath();
+ const poly=(pts,fill,noOx)=>{const q=pts.map(([X,Z])=>pp((noOx?0:ox)+X*k,Z*k));camPts.push(...q);{const xs=q.map(v=>v[0]),ys=q.map(v=>v[1]);obst.push({x:Math.min(...xs)+3,y:Math.min(...ys)+3,w:Math.max(0,Math.max(...xs)-Math.min(...xs)-6),h:Math.max(0,Math.max(...ys)-Math.min(...ys)-6)});}sx.beginPath();q.forEach((v,i)=>i?sx.lineTo(v[0],v[1]):sx.moveTo(v[0],v[1]));sx.closePath();
   if(fill){sx.globalAlpha=0.14;sx.fillStyle=fg;sx.fill();sx.globalAlpha=1;}sx.lineJoin='round';sx.lineWidth=2;sx.strokeStyle=fg;sx.stroke();};
  poly([[-0.6,-0.2],[0.6,-0.2],[0.8,-0.9],[-0.8,-0.9]],true); // lens mount
  // body: from above, a wide, shallow SLR-style body; from the side, a shorter body with chamfered rear corners and a viewfinder hump on top
@@ -1302,11 +1314,11 @@ function applyDrag(w){
   const Xh=isFinite(Zc)?(Math.abs(Zc-Zt)<1e-6?NaN:Xt*Zc/(Zc-Zt)):Xt;
   if(isFinite(Xh)){
    const r=Math.max(-1,Math.min(1,M.f/(Xh||1e-9)));
-   const tilt=Math.max(-TILTMAX,Math.min(TILTMAX,-Math.asin(r)*180/Math.PI));
+   const tilt=Math.max(-TILTLO,Math.min(TILTHI,-Math.asin(r)*180/Math.PI));
    if(LENS){ // 0.25 degree steps, but quick to respond: a step is taken once the pointer has moved 15% of the way to the next one in the direction it is travelling
     const st=0.25,cur=+V.tilt,d=tilt-cur;let dir=tiltRawPrev===null||tilt===tiltRawPrev?tiltDir:Math.sign(tilt-tiltRawPrev);dir=dir||Math.sign(d);tiltRawPrev=tilt;tiltDir=dir;
     const n=d*dir>0?Math.floor(Math.abs(d)/st+0.85)*Math.sign(d):0;
-    if(n)setVal('tilt',+Math.max(-TILTMAX,Math.min(TILTMAX,snapTilt(cur)+n*st)).toFixed(3));
+    if(n)setVal('tilt',+Math.max(-TILTLO,Math.min(TILTHI,snapTilt(cur)+n*st)).toFixed(3));
    }else setVal('tilt',+tilt.toFixed(3));
   }
  }
@@ -1344,7 +1356,8 @@ sc.addEventListener('pointerup',endDrag);sc.addEventListener('pointercancel',end
 if(typeof window!=='undefined')window.addEventListener('resize',draw);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 function refreshLabels(){
- const L={cam:topView?'Pan camera (°)':'Camera pitch (°)',h:'Camera height from ground ('+(imperial?'in':'cm')+')',view:(topView?'Scene depth shown (':'Scene width shown (')+(imperial?'ft':'m')+')',focus:'Focus distance ('+(imperial?'ft':'m')+')'};
+ for(const [id,a] of[['vw-side','Tilt Up/Down'],['vw-top','Tilt Left/Right']]){const e=document.getElementById(id);if(e)e.textContent=a;}
+ const L={tilt:'Lens tilt (°)',shift:'Lens shift (mm)',lens:'Choose example lens',cam:topView?'Pan camera (°)':'Camera pitch (°)',h:'Camera height from ground ('+(imperial?'in':'cm')+')',view:(topView?'Scene depth shown (':'Scene width shown (')+(imperial?'ft':'m')+')',focus:'Focus distance ('+(imperial?'ft':'m')+')'};
  for(const k in L){const l=document.querySelector(`label[for="n_${k}"]`),r=document.getElementById('r_'+k);if(l)l.firstChild.nodeValue=L[k];if(r)r.setAttribute('aria-label',L[k]);}
 }
 function setUnits(imp){
@@ -1380,12 +1393,14 @@ function placeUnits(){ // Learner mode shows the units switch last among the con
  const uw=document.querySelector('.unitsw').parentNode;
  if(LEARN)document.getElementById('main-controls').appendChild(uw);else{const ac=document.getElementById('adv-controls');ac.insertBefore(uw,ac.firstChild);}
 }
-function setMode(learn){
+
+function setMode(m){
+ const mode=m===true||m==='learn'?'learn':'adv';
  if(window.tourStop)tourStop(); // Learner: Tilt Up/Down only, metric, two example lenses; Advanced: the full tool. Changing mode starts again from the defaults.
- LEARN=!!learn;document.body.classList.toggle('learner',LEARN);
- for(const [id,on] of[['md-learn',LEARN],['md-adv',!LEARN]]){const b=document.getElementById(id);b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');}
+ LEARN=mode==='learn';document.body.classList.toggle('learner',LEARN);
+ for(const [id,on] of[['md-learn',LEARN],['md-adv',mode==='adv']]){const b=document.getElementById(id);b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');}
  fillLensList();
- placeUnits();
+ placeUnits();refreshLabels();
  if(topView)setView(false);
  if(window.updLegTog)window.updLegTog();
  resetAll();draw();
@@ -1396,13 +1411,13 @@ function setMode(learn){
   document.getElementById('leg-tog-txt').textContent=(off?'Show ':'Hide ')+(LEARN?'legend':'legend and details');};
  lt.addEventListener('click',()=>{pn.classList.toggle('legoff');upd();});
  window.updLegTog=upd;upd();}
-document.getElementById('md-learn').addEventListener('click',()=>{if(!LEARN)setMode(true);});
-document.getElementById('md-adv').addEventListener('click',()=>{if(LEARN)setMode(false);});
+document.getElementById('md-learn').addEventListener('click',()=>{if(!LEARN)setMode('learn');});
+document.getElementById('md-adv').addEventListener('click',()=>{if(LEARN)setMode('adv');});
 // ---- Help: information bubbles, shown only while Help is on; tap (or hover with a mouse) a bubble to read its note
 let helpOn=false,tipFor=null,tipPinned=false;
 const T=()=>topView;
 const TIPS={
- about:'Tilt-shift focus explorer is a tool designed to demonstrate how tilt works using tilt-shift lenses. Learner mode offers a basic set of controls and two lens+sensor choices to show how up/down tilt works. Click the "Guided tour" button in Learner mode for a short tutorial. Advanced mode adds side-to-side tilt, additional lens choices, and many advanced controls. The tool uses a thin-lens model where tilt pivots about the lens centre and focus is set by sensor-to-lens extension. Tilt is slightly different on real lenses. Contact Rob for technical details.',
+ about:'Tilt-shift focus explorer is a tool designed to demonstrate how tilt works using tilt-shift lenses. Learner mode offers a basic set of controls and two lens+sensor choices to show how up/down tilt works. Click the "Guided tour" button in Learner mode for a short tutorial. Advanced Tilt-Shift mode adds side-to-side tilt, additional lens choices, and many advanced controls. The tool uses a thin-lens model where tilt pivots about the lens centre and focus is set by sensor-to-lens extension. Tilt is slightly different on real lenses. Contact Rob for technical details.',
  cam:'The tool assumes the camera is attached to a tripod, with a tilt-shift lens attached. Applying tilt will tilt the lens, but the sensor will not move. The position and orientation of the camera can be adjusted using the controls.',
  focus:'Change focus by dragging the red circle.',
  tilt:'Change tilt angle by dragging the green diamond.',
@@ -1410,17 +1425,17 @@ const TIPS={
  ground:'Choose flat, level ground, or ground that is uneven and slopes down or up. Uneven ground is level for the first metre from the lens and then has an overall slope of roughly 6%, with local slopes that vary and sometimes run against the trend for a few metres. The surface is the same every time. "Ground in acceptably sharp focus" is the bar along the surface, shaded in the same way as the sharpness shading: darkest where the ground is sharpest and fading as it becomes softer, and only where the lens can see it: ground hidden behind a rise is not shown. Distances are measured straight along the level from the camera, not along the slope. Auto Tilt/Focus and the point where the plane of focus meets the ground follow the surface too.',
  hyper:'At the hyperfocal distance, everything from halfway between the lens and the point of focus, out to infinity, is in focus. The hyperfocal distance is determined by the current focal length, aperture, and circle of confusion, and is only shown when tilt is 0 degrees. Use the button to focus automatically at the hyperfocal distance.',
  objs:()=>T()?'Use the Add buttons to place background objects in the view. Pressing a button again adds another of the same kind, placed to the right of the ones already there. Once placed, drag the dark dot on any object to move it. Each tree and shrub moves on its own. The wall is 20 m (about 66 ft) long and 1 m (about 3 ft) thick: drag either end dot to swing it about the other end, or the middle dot to slide it. The L-shaped building has a middle dot to move it and a second dot to turn it. To remove an object, click or touch the small red X beside it. Objects can touch but cannot overlap.':'Use the Add buttons to add objects of different sizes and heights to the view. The first of each kind is placed at a standard distance from the camera (the low plant, boulder, shrub, tree, wall and building start at '+(imperial?'6, 15, 30, 50, 75 and 100 ft':'2, 5, 10, 15, 23 and 30 m')+'); pressing a button again adds another, bumped to the right to the nearest free spot. Once placed, drag the dark dot at the foot of an object to slide it nearer or farther. To remove an object, click or touch the small red X beside it. Objects cannot overlap, and that includes the spreading top of a tree: drag one up to another and keep going to jump past it.',
- auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to 15°) and focus distance to put as much of the visible ground as possible in acceptable sharpness, from near the camera out to the scene width shown, so the sharp zone follows the ground across the picture. Tilt is chosen in whole or half degrees and focus distance in whole or half metres (or feet). Other settings are unchanged. Not available in Tilt Left/Right view.',
+ auto:'In Tilt Up/Down view, automatically sets lens tilt (positive tilt, up to the lens\'s own limit, 20° for a custom lens) and focus distance to put as much of the visible ground as possible in acceptable sharpness, from near the camera out to the scene width shown, so the sharp zone follows the ground across the picture. Tilt is chosen in whole or half degrees and focus distance in whole or half metres (or feet). Other settings are unchanged. Not available in Tilt Left/Right view.',
  hyperbtn:'When tilt is 0 degrees, you can automatically focus at the hyperfocal distance using the current aperture, focal length and circle of confusion. Button is not available when tilt is not 0 degrees.',
  view:'Choose between a side profile (Tilt Up/Down) or a top-down view (Tilt Left/Right). Diagonal tilt is not available. Changing the view also resets all settings and background objects to their defaults.',
  fl:'Choose the focal length of the lens. The vertical or horizontal field of view is determined by the chosen focal length and the sensor size. You can choose sensor size under Additional controls.',
  ap:()=>LENS?'Choose the aperture. With a lens chosen, the range is limited to what that lens offers, in third-stop steps.':'Choose the aperture of the lens in full or half stops.',
- lens:'Choose a real tilt-shift lens, or Custom, to apply that lens\'s limits. The model itself stays a generic thin lens: only the limits below come from the lens. A lens fixes the focal length, the range of aperture, the closest focus distance, the image circle, and the largest tilt and shift it allows; those controls are limited or greyed. Only lenses whose tilt and shift mechanisms rotate independently are listed, so shift and tilt can be set in the same direction (up/down or left/right). The Fujifilm lenses work only with the Medium format 43.8mm x 32.9mm sensor, so choosing one sets and locks the sensor; the Canon lenses work on all three formats (with adapters on the Medium format sensor). Choose Custom to set everything yourself. Reset to Default and changing the view both return to Custom.',
+ lens:()=>'Choose a real tilt-shift lens, or Custom, to apply that lens\'s limits. The model itself stays a generic thin lens: only the limits below come from the lens. A lens fixes the focal length, the range of aperture, the closest focus distance, the image circle, and the largest tilt and shift it allows; those controls are limited or greyed. Only lenses whose tilt and shift mechanisms rotate independently are listed, so shift and tilt can be set in the same direction (up/down or left/right). The Fujifilm lenses work only with the Medium format 43.8mm x 32.9mm sensor, so choosing one sets and locks the sensor; the Canon lenses work on all three formats (with adapters on the Medium format sensor). Choose Custom to set everything yourself. Reset to Default and changing the view both return to Custom.',
  h:'In Tilt Up/Down view, choose the height of the camera relative to the ground.',
  cam_c:()=>T()?'Pan the camera and lens left or right. Panning the camera changes perspective.':'Lean the camera and lens up or down: positive values point the camera down, negative values point it up. Leaning the camera up or down changes perspective.',
  tilt_c:'Lens tilt changes the angle of the plane of focus. When tilt is 0 degrees, the lens functions like a non-tilt lens. Positive and negative tilt values can be used.',
  focus_c:()=>'Choose where the plane of focus crosses the camera axis (the line straight out from the sensor centre, which is also the lens axis when there is no tilt), from the closest focus distance of '+fmtD(DMIN)+(LENS?' for the '+LENS.name:' (Custom)')+' out to infinity. Type a distance, or use the arrows beside the box or the arrow keys to step by '+(imperial?'3 ft':'1 m')+' at a time. Clear the box to focus at infinity. The slider can go slightly past infinity.',
- shift_c:'Shift the lens (up or down in Tilt Up/Down view, and left or right in Tilt Left/Right view). Lens shift does not change perspective. The most you can shift is the smallest of 15 mm (or the chosen lens\'s own limit) and the amount that keeps the whole sensor inside the lens\'s image circle, so a large sensor or a small image circle allows less.',
+ shift_c:'Shift the lens (up or down in Tilt Up/Down view, and left or right in Tilt Left/Right view). Lens shift does not change perspective. The most you can shift is the smallest of 25 mm (or the chosen lens\'s own limit) and the amount that keeps the whole sensor inside the lens\'s image circle, so a large sensor or a small image circle allows less.',
  view_c:()=>T()?'Sets how much of the scene is shown in the distance direction. Use a larger value to see more of the scene, or a smaller one to zoom in. It can be set from '+(imperial?'15 ft to 325 ft':'5 m to 100 m')+'; the slider is on a logarithmic scale, so small widths are as easy to set as large ones.':'Sets how much of the scene is shown across the display. Use a larger value to see more of the scene, or a smaller one to zoom in. It can be set from '+(imperial?'15 ft to 325 ft':'5 m to 100 m')+'; the slider is on a logarithmic scale, so small widths are as easy to set as large ones.',
  units:'Switch between Metric and Imperial units.',
  sensor:'Choose the sensor format. The Fujifilm T/S lenses work only on the Medium format 43.8mm x 32.9mm sensor, so choosing one locks the sensor. This affects the field of view and the frame size shown in the results. The circle of confusion and the lens\'s image circle are set separately.',
@@ -1539,14 +1554,14 @@ addEventListener('scroll',hideTip,{passive:true});addEventListener('resize',()=>
 // ---- Save link: the whole setup is written into the address (after the #), and read back when that address is opened
 function getState(){
  const cm=document.getElementById('n_cocmode');
- return{md:LEARN?1:0,v:topView?1:0,u:imperial?1:0,l:LENS?Object.keys(LENSES).find(k=>LENSES[k]===LENS):'custom',fl:V.fl,ap:V.ap,h:V.h,cam:V.cam,tilt:V.tilt,focus:V.focus,shift:V.shift,sensor:V.sensor,circ:V.circ,view:V.view,
+ return{md:LEARN?1:0,v:topView?1:0,u:imperial?1:0,l:lensKey()||'custom',fl:V.fl,ap:V.ap,h:V.h,cam:V.cam,tilt:V.tilt,focus:V.focus,shift:V.shift,sensor:V.sensor,circ:V.circ,view:V.view,
   cm:cm.value,coc:V.coc,cv:curvLvl,fo:fovOnly?1:0,dd:diffOn?1:0,g:GMODE,top:TOP,side:SIDE};
 }
 const b64e=t=>btoa(unescape(encodeURIComponent(t))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d=t=>decodeURIComponent(escape(atob(t.replace(/-/g,'+').replace(/_/g,'/'))));
 function applyState(st){
  const num=(x,d)=>typeof x==='number'&&isFinite(x)?x:d;
- if(!!st.md!==LEARN)setMode(!!st.md);
+ {const want=st.md===1?'learn':'adv';if((want==='learn')!==LEARN)setMode(want);}
  resetAll();setView(!!st.v);
  if(!!st.u!==imperial)setUnits(!!st.u);
  if(st.l&&LENSES[st.l])setLens(st.l);
@@ -1708,7 +1723,7 @@ document.getElementById('main-controls').addEventListener('change',e=>{if(e.targ
   if(tourOn&&e.target&&e.target.type==='number'){tourTyped=true;tourCheck();}}); // a value typed into a number box counts at once
 document.getElementById('reset').addEventListener('click',()=>{if(tourOn&&TOUR[tourI].goal==='click'){tourClicked=true;tourCheck();}});
 placeUnits();
-if(!/^#s=/.test(location.hash))setMode(true); // a fresh visit opens in Learner mode; saved links carry their own mode
+if(!/^#s=/.test(location.hash))setMode('learn'); // a fresh visit opens in Learner mode; saved links carry their own mode
 restoreFromHash();
 
 draw();
