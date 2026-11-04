@@ -133,7 +133,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
 <div class="wrap">
  <main>
   <div class="hdr"><h1>Tilt-shift focus explorer</h1><div class="hdrbtns"><div class="modesw" role="group" aria-label="Mode"><button type="button" id="md-learn" role="switch" aria-checked="false">Learner</button><button type="button" id="md-adv" role="switch" aria-checked="true" class="on">Advanced Tilt-Shift</button></div><button type="button" id="help-btn" class="helpbtn" aria-pressed="false" title="Show or hide the information bubbles">ⓘ Help</button></div></div>
-  <p class="devnote">Created by Rob de Loë | Draft 2026-Oct-30 v0.367</p>
+  <p class="devnote">Created by Rob de Loë | Draft 2026-Nov-04 v0.369</p>
   <div class="panel">
    <canvas id="scene" width="960" height="540" aria-label="Side view of the plane of focus"></canvas><div id="sceneTips"></div>
    <div id="lrn-read" class="lrnread" aria-live="polite"></div>
@@ -144,7 +144,7 @@ input[type=range]{touch-action:pan-y} /* a vertical swipe over a slider scrolls 
   <div class="lower">
   <div>
   <div class="panel objs">
-   <h2 style="margin-top:0">Add background objects</h2>
+   <h2 style="margin-top:0">Add objects</h2>
    <div id="objs-side"></div>
    <div id="objs-body" style="display:none"></div>
   </div>
@@ -479,11 +479,11 @@ const defFocusM=imp=>imp?IMP_FOCUS_M:DEFAULT_FOCUS_M;
 const LENSES={
  fuji:{name:'Fujifilm GF 30mm f/5.6 T/S',fl:30,ap:[5.6,32],dmin:0.3,shift:15,tilt:8.5,circ:85,sensor:2},
  fuji110:{name:'Fujifilm GF 110mm f/5.6 T/S Macro',fl:110,ap:[5.6,32],dmin:0.43,shift:15,tilt:10,circ:85,sensor:2},
- c17:{name:'Canon TS-E 17mm f/4L',fl:17,ap:[4,22],dmin:0.25,shift:12,tilt:6.5,circ:67},
- c24:{name:'Canon TS-E 24mm f/3.5L II',fl:24,ap:[3.5,22],dmin:0.21,shift:12,tilt:8.5,circ:67},
- c50:{name:'Canon TS-E 50mm f/2.8L Macro',fl:50,ap:[2.8,32],dmin:0.27,shift:12,tilt:8.5,circ:67},
- c90:{name:'Canon TS-E 90mm f/2.8L Macro',fl:90,ap:[2.8,45],dmin:0.39,shift:12,tilt:10,circ:67},
- c135:{name:'Canon TS-E 135mm f/4L Macro',fl:135,ap:[4,45],dmin:0.49,shift:12,tilt:10,circ:67}};
+ c17:{name:'Canon TS-E 17mm f/4L',fl:17,ap:[4,22],dmin:0.25,shift:12,tilt:6.5,circ:67.2},
+ c24:{name:'Canon TS-E 24mm f/3.5L II',fl:24,ap:[3.5,22],dmin:0.21,shift:12,tilt:8.5,circ:67.2},
+ c50:{name:'Canon TS-E 50mm f/2.8L Macro',fl:50,ap:[2.8,32],dmin:0.27,shift:12,tilt:8.5,circ:67.2},
+ c90:{name:'Canon TS-E 90mm f/2.8L Macro',fl:90,ap:[2.8,45],dmin:0.39,shift:12,tilt:10,circ:67.2},
+ c135:{name:'Canon TS-E 135mm f/4L Macro',fl:135,ap:[4,45],dmin:0.49,shift:12,tilt:10,circ:67.2}};
 let LENS=null,LEARN=false;
 const lensKey=()=>LENS?Object.keys(LENSES).find(k=>LENSES[k]===LENS):'custom';
 // LEARN: Learner mode (Tilt Up/Down only, two example lenses, simplified controls)
